@@ -17,30 +17,26 @@ module Control.Concurrent.Lock
 --------------------------------------------------------------------------------
 
 -- from base
-import Control.Concurrent.MVar ( MVar
-                               , newMVar
-                               , newEmptyMVar
-                               , takeMVar
-                               , tryTakeMVar
+import Control.Applicative     ( (<$>), liftA2 )
+import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
+                               , takeMVar, tryTakeMVar
                                , tryPutMVar
                                , isEmptyMVar
                                )
 import Control.Exception       ( bracket_ )
-import Control.Monad           ( Monad, return, (>>=), fail
-                               , fmap
-                               )
-import Control.Applicative     ( (<$>), liftA2 )
-import System.IO               ( IO )
+import Control.Monad           ( Monad, (>>=), fail, when, fmap )
+import Data.Bool               ( Bool, not )
+import Data.Function           ( ($) )
 import Data.Maybe              ( isJust )
-import Data.Function           ( flip )
-import Data.Bool               ( Bool )
+import Prelude                 ( error )
+import System.IO               ( IO )
 
 -- from base-unicode-symbols
 import Data.Function.Unicode   ( (∘) )
 
 
 --------------------------------------------------------------------------------
--- Imports
+-- Locks
 --------------------------------------------------------------------------------
 
 newtype Lock = Lock { un ∷ MVar () }
@@ -58,17 +54,15 @@ tryAcquire ∷ Lock → IO Bool
 tryAcquire = fmap isJust ∘ tryTakeMVar ∘ un
 
 release ∷ Lock → IO ()
-release = void ∘ flip tryPutMVar () ∘ un
+release (Lock mv) = do
+  b ← tryPutMVar mv ()
+  when (not b) $ error "Control.Concurrent.Lock.release: Can't release unlocked Lock!"
 
 with ∷ Lock → IO a → IO a
 with = liftA2 bracket_ acquire release
 
 locked ∷ Lock → IO Bool
 locked = isEmptyMVar ∘ un
-
-void ∷ Monad m ⇒ m a → m ()
-void m = do _ ← m
-            return ()
 
 
 -- The End ---------------------------------------------------------------------

@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE NoImplicitPrelude, UnicodeSyntax, ScopedTypeVariables #-}
 
 module Main where
 
@@ -9,11 +9,13 @@ module Main where
 -- from base
 import Control.Applicative ( (<$>) )
 import Control.Concurrent  ( forkIO, threadDelay )
-import Control.Exception   ( catch, throwTo, ErrorCall(..) )
+import Control.Exception   ( catch, try, throwTo, ErrorCall(..), SomeException )
 import Control.Monad       ( (>>=), (>>), return, fail
                            , mapM_, replicateM, replicateM_
                            )
-import Data.Bool           ( Bool )
+import Data.Bool           ( Bool, not )
+import Data.Char           ( String )
+import Data.Either         ( Either(Left, Right) )
 import Data.Function       ( ($) )
 import Data.Int            ( Int )
 import Data.Maybe          ( isJust )
@@ -26,9 +28,13 @@ import Data.Function.Unicode ( (∘) )
 import Prelude.Unicode       ( (⋅) )
 
 -- from concurrent-extra
--- import qualified Control.Concurrent.Lock  as Lock
+import           Control.Concurrent.Lock  ( Lock )
+import qualified Control.Concurrent.Lock  as Lock
 import           Control.Concurrent.Event ( Event )
 import qualified Control.Concurrent.Event as Event
+
+-- from HUnit
+import Test.HUnit hiding ( Test )
 
 -- from test-framework
 import Test.Framework  ( Test, defaultMain, testGroup )
@@ -36,8 +42,6 @@ import Test.Framework  ( Test, defaultMain, testGroup )
 -- from test-framework-hunit
 import Test.Framework.Providers.HUnit ( testCase )
 
--- from HUnit
-import Test.HUnit hiding ( Test )
 
 
 -------------------------------------------------------------------------------
@@ -58,7 +62,20 @@ tests = [ testGroup "Events"
           , testCase "exception"     ∘ assert $ test_event_4
           , testCase "wait timeout"  ∘ assert $ test_event_5
           ]
+        , testGroup "Lock"
+          [ testCase "acquire release" ∘ assert $ test_lock_1
+          , testCase "acquire acquire" ∘ assert $ test_lock_2
+          , testCase "new release"     ∘ assert $ test_lock_3
+          ]
+        , testGroup "RLock"
+          [
+          ]
         ]
+
+
+--------------------------------------------------------------------------------
+-- Events
+--------------------------------------------------------------------------------
 
 -- Set an event 's' times then wait for it 'w' times. This should
 -- terminate within a few moments.
@@ -120,6 +137,34 @@ test_event_5 = within (10 ⋅ a_moment) $ do
                  e ← Event.new
                  Event.waitTimeout e a_moment
 
+
+--------------------------------------------------------------------------------
+-- Locks
+--------------------------------------------------------------------------------
+
+test_lock_1 ∷ IO Bool
+test_lock_1 = within a_moment $ do
+                l ← Lock.new
+                Lock.acquire l
+                Lock.release l
+
+test_lock_2 ∷ IO Bool
+test_lock_2 = notWithin (10 ⋅ a_moment) $ do
+                l ← Lock.new
+                Lock.acquire l
+                Lock.acquire l
+
+test_lock_3 ∷ Assertion
+test_lock_3 = assertException "" $ do
+                l ← Lock.new
+                Lock.release l
+
+
+--------------------------------------------------------------------------------
+-- RLocks
+--------------------------------------------------------------------------------
+
+
 -------------------------------------------------------------------------------
 -- Misc
 -------------------------------------------------------------------------------
@@ -134,3 +179,12 @@ wait_a_moment = threadDelay a_moment
 -- True if the action 'a' evaluates within 't' μs.
 within ∷ Int → IO α → IO Bool
 within t a = isJust <$> timeout t a
+
+notWithin ∷ Int → IO α → IO Bool
+notWithin t a = not <$> within t a
+
+assertException ∷ String → IO α → Assertion
+assertException errMsg a = do e ← try a
+                              case e of
+                                Left (ex ∷ SomeException ) → return ()
+                                Right _ → assertFailure errMsg
