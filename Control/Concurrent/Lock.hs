@@ -1,22 +1,25 @@
 {-# LANGUAGE UnicodeSyntax, NoImplicitPrelude #-}
 
-module Control.Concurrent.Lock ( Lock
-                               , new
-                               , acquire
-                               , tryAcquire
-                               , release
-                               , with
-                               , locked
-                               ) where
+module Control.Concurrent.Lock
+    ( Lock
+    , new
+    , newAcquired
+    , acquire
+    , tryAcquire
+    , release
+    , with
+    , locked
+    ) where
 
 
 --------------------------------------------------------------------------------
 -- Imports
 --------------------------------------------------------------------------------
 
--- from base:
+-- from base
 import Control.Concurrent.MVar ( MVar
                                , newMVar
+                               , newEmptyMVar
                                , takeMVar
                                , tryTakeMVar
                                , tryPutMVar
@@ -44,6 +47,9 @@ newtype Lock = Lock { un ∷ MVar () }
 
 new ∷ IO Lock
 new = Lock <$> newMVar ()
+
+newAcquired ∷ IO Lock
+newAcquired = Lock <$> newEmptyMVar
 
 acquire ∷ Lock → IO ()
 acquire = takeMVar ∘ un
