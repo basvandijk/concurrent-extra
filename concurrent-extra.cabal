@@ -1,0 +1,25 @@
+name:          concurrent-extra
+version:       0.1
+cabal-version: >= 1.6
+build-type:    Simple
+stability:     experimental
+author:        Bas van Dijk <v.dijk.bas@gmail.com>
+               Roel van Dijk <vandijk.roel@gmail.com>
+maintainer:    Bas van Dijk <v.dijk.bas@gmail.com>
+               Roel van Dijk <vandijk.roel@gmail.com>
+copyright:     (c) 2010 Bas van Dijk & Roel van Dijk
+license:       BSD3
+license-file:  LICENSE
+category:      Concurrency
+synopsis:
+description:
+
+source-repository head
+  Type: darcs
+  Location: http://code.haskell.org/concurrent-extra
+
+library
+  build-depends: base                 >= 3     && < 4.3
+               , base-unicode-symbols >= 0.1.1 && < 0.2
+  exposed-modules: Control.Concurrent.Lock
+  ghc-options: -Wall
