@@ -40,6 +40,8 @@ library
   exposed-modules: Control.Concurrent.Lock
                  , Control.Concurrent.RLock
                  , Control.Concurrent.Event
+                 , Control.Concurrent.ReadWriteLock
+                 , Control.Concurrent.ReadWriteVar
   ghc-options: -Wall
 
   if flag(nolib)
