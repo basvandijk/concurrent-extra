@@ -2,12 +2,22 @@
 
 module Control.Concurrent.RLock
     ( RLock
+
+      -- * Creating reentrant locks
     , new
+    , newAcquired
+
+      -- * Locking and unlocking
     , acquire
     , tryAcquire
+
     , release
+
+      -- * Convenience functions
     , with
     , tryWith
+
+      -- * Quering reentrant locks
     , recursionLevel
     ) where
 
@@ -47,6 +57,11 @@ newtype RLock = RLock {un ∷ MVar (Maybe (ThreadId, Integer, Lock))}
 
 new ∷ IO RLock
 new = RLock <$> newMVar Nothing
+
+newAcquired ∷ IO RLock
+newAcquired = do myTID ← myThreadId
+                 lock ← Lock.newAcquired
+                 RLock <$> newMVar (Just (myTID, 1, lock))
 
 acquire ∷ RLock → IO ()
 acquire (RLock mv) = do
