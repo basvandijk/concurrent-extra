@@ -92,8 +92,8 @@ release (RLock mv) = do
         | myTID ≡ tid → if n ≡ 1
                         then do Lock.release lock
                                 putMVar mv Nothing
-                        else do let sn = succ n
-                                sn `seq` putMVar mv $ Just (tid, sn, lock)
+                        else do let pn = pred n
+                                pn `seq` putMVar mv $ Just (tid, pn, lock)
         | otherwise → myError "Calling thread does not own the RLock!"
 
 with ∷ RLock → IO α → IO α
