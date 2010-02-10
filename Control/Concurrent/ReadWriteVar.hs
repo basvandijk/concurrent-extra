@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude, TupleSections, UnicodeSyntax #-}
 
-module ReadWriteVar
+module Control.Concurrent.ReadWriteVar
   ( RWVar
   , new
   , with
