@@ -7,6 +7,7 @@ module Control.Concurrent.RLock
     , tryAcquire
     , release
     , with
+    , tryWith
     , recursionLevel
     ) where
 
@@ -19,7 +20,7 @@ module Control.Concurrent.RLock
 import Control.Applicative     ( (<$>), liftA2 )
 import Control.Concurrent      ( ThreadId, myThreadId )
 import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, readMVar, putMVar )
-import Control.Exception       ( block, unblock, bracket_ )
+import Control.Exception       ( block, unblock, bracket_, finally )
 import Control.Monad           ( Monad, return, (>>=), fail, (>>), fmap )
 import Data.Bool               ( Bool(False, True), otherwise )
 import Data.Function           ( ($) )
@@ -98,6 +99,13 @@ release (RLock mv) = do
 
 with ∷ RLock → IO α → IO α
 with = liftA2 bracket_ acquire release
+
+tryWith ∷ RLock → IO α → IO (Maybe α)
+tryWith l a = block $ do
+  acquired ← tryAcquire l
+  if acquired
+    then fmap Just $ a `finally` release l
+    else return Nothing
 
 recursionLevel ∷ RLock → IO Integer
 recursionLevel = fmap (maybe 0 (\(_, n, _) → n)) ∘ readMVar ∘ un
