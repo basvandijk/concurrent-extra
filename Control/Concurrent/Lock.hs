@@ -8,6 +8,7 @@ module Control.Concurrent.Lock
     , tryAcquire
     , release
     , with
+    , tryWith
     , locked
     ) where
 
@@ -23,11 +24,11 @@ import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , tryPutMVar
                                , isEmptyMVar
                                )
-import Control.Exception       ( bracket_ )
-import Control.Monad           ( Monad, (>>=), fail, when, fmap )
+import Control.Exception       ( block, bracket_, finally )
+import Control.Monad           ( Monad, return, (>>=), fail, when, fmap )
 import Data.Bool               ( Bool, not )
 import Data.Function           ( ($) )
-import Data.Maybe              ( isJust )
+import Data.Maybe              ( Maybe(Nothing, Just), isJust )
 import Prelude                 ( error )
 import System.IO               ( IO )
 
@@ -60,6 +61,13 @@ release (Lock mv) = do
 
 with ∷ Lock → IO a → IO a
 with = liftA2 bracket_ acquire release
+
+tryWith ∷ Lock → IO α → IO (Maybe α)
+tryWith l a = block $ do
+  acquired ← tryAcquire l
+  if acquired
+    then fmap Just $ a `finally` release l
+    else return Nothing
 
 locked ∷ Lock → IO Bool
 locked = isEmptyMVar ∘ un
