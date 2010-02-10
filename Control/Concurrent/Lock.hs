@@ -29,13 +29,22 @@
 
 module Control.Concurrent.Lock
     ( Lock
+
+      -- * Creating locks
     , new
     , newAcquired
+
+      -- * Locking and unlocking
     , acquire
     , tryAcquire
+
     , release
+
+      -- * Convenience functions
     , with
     , tryWith
+
+      -- * Querying locks
     , locked
     ) where
 
@@ -70,7 +79,7 @@ import Data.Function.Unicode   ( (∘) )
 {-| A lock is in one of two states, \"locked\" or \"unlocked\". -}
 newtype Lock = Lock { un ∷ MVar () }
 
--- | Create a unlocked lock.
+-- | Create an unlocked lock.
 new ∷ IO Lock
 new = Lock <$> newMVar ()
 
