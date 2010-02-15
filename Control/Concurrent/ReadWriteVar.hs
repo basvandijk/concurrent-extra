@@ -17,22 +17,17 @@ module Control.Concurrent.ReadWriteVar
 -------------------------------------------------------------------------------
 
 -- from base
-import Control.Exception       ( bracket_ )
-import Control.Monad           ( return, (>>=), return, (=<<), fail, (>>)
-                               , when, fmap, liftM2
+import Control.Monad           ( return, (>>=), return, fail, (>>)
+                               , fmap, liftM2
                                )
 import Data.Bool               ( Bool )
 import Data.Function           ( ($) )
 import Data.Maybe              ( Maybe, isJust )
-import Data.IORef              ( IORef, newIORef, readIORef, writeIORef
-                               , modifyIORef
-                               )
-import Prelude                 ( Integer, fromInteger, succ, pred, ($!) )
+import Data.IORef              ( IORef, newIORef, readIORef, writeIORef )
 import System.IO               ( IO )
 
 -- from base-unicode-symbols
 import Data.Function.Unicode   ( (∘) )
-import Data.Eq.Unicode         ( (≡) )
 
 -- from concurrent-extra
 import           Control.Concurrent.ReadWriteLock ( RWLock )
