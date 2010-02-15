@@ -44,7 +44,7 @@ module Control.Concurrent.ReadWriteVar
   , new
     -- *Reading
   , with
-  -- , tryWith
+  , tryWith
     -- *Writing
   , modify_
   , modify
@@ -102,10 +102,11 @@ block until the other thread finishes its action.
 with ∷ RWVar α → (α → IO β) → IO β
 with (RWVar l r) f = RWLock.withRead l $ readIORef r >>= f
 
-{-
+{-| Like 'with' but doesn't block. Returns 'Just' the result if read access
+could be acquired without blocking, 'Nothing' otherwise.
+-}
 tryWith ∷ RWVar α → (α → IO β) → IO (Maybe β)
 tryWith (RWVar l r) f = RWLock.tryWithRead l $ readIORef r >>= f
--}
 
 {-| Modify the contents of an 'RWVar'.
 
