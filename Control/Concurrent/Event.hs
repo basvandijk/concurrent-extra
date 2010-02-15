@@ -53,7 +53,10 @@ import Control.Concurrent.MVar ( MVar, newMVar
                                , takeMVar, putMVar, readMVar, modifyMVar_
                                )
 import Control.Exception       ( block, unblock )
-import Data.Bool               ( Bool(..) )
+import Data.Bool               ( Bool(True) )
+#if __HADDOCK__
+import Data.Bool               ( Bool(False) )
+#endif
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($), const )
 import Data.Int                ( Int )
@@ -120,7 +123,7 @@ waitTimeout ∷ Event → Int → IO Bool
 waitTimeout (Event mv) time = block $ do
   t@(st, _) ← takeMVar mv
   case st of
-    Set     → do putMVar mv t 
+    Set     → do putMVar mv t
                  return True
     Cleared → do l ← Lock.newAcquired
                  putMVar mv $ second (l:) t
@@ -136,11 +139,11 @@ set (Event mv) = block $ do
   putMVar mv (Set, [])
 
 -- | Changes the state of the event to 'Cleared'. Threads that 'wait' after the
--- state is changed to 'Cleared' will block util the state is changed to 'Set'.
+-- state is changed to 'Cleared' will block until the state is changed to 'Set'.
 clear ∷ Event → IO ()
 clear (Event mv) = modifyMVar_ mv $ return ∘ first (const Cleared)
 
--- | Determines the current state of the event. 
+-- | Determines the current state of the event.
 --
 -- Notice that this is only a snapshot of the state. By the time a program
 -- reacts on its result it may already be out of date. This can be avoided by
