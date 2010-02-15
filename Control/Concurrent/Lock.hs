@@ -5,8 +5,8 @@
 -- Module     : Control.Concurrent.Lock
 -- Copyright  : (c) 2010 Bas van Dijk & Roel van Dijk
 -- License    : BSD3 (see the file LICENSE)
--- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>,
---              Roel van Dijk <vandijk.roel@gmail.com>
+-- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>
+--            , Roel van Dijk <vandijk.roel@gmail.com>
 --
 -- This module provides the 'Lock' concurrent synchronization mechanism. It was
 -- inspired by the Python and Java @Lock@ objects and should behave in a similar
@@ -65,7 +65,7 @@ import Control.Monad           ( Monad, return, (>>=), fail, when, fmap )
 import Data.Bool               ( Bool, not )
 import Data.Function           ( ($) )
 import Data.Maybe              ( Maybe(Nothing, Just), isJust )
-import Prelude                 ( error, fromInteger )
+import Prelude                 ( error )
 import System.IO               ( IO )
 
 -- from base-unicode-symbols
