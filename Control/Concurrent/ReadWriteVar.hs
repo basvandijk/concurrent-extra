@@ -17,7 +17,7 @@
 -- 'with' function will block if 'modify' is active and vice versa. Furthermore
 -- 'with' is fully sequential and will also block on concurrent calls of 'with'.
 --
--- Deadlocks:
+-- The following are guaranteed deadlocks:
 --
 -- * @'modify_' v '$' 'const' '$' 'with' v '$' 'const' 'undefined'@
 --
@@ -25,6 +25,8 @@
 --
 -- * @'modify_' v '$' 'const' '$' 'modify_' v '$' 'const' 'undefined'@
 --
+-- Note that threads blocking on 'with' or 'modify' and friends can still be
+-- unblocked by throwing an asynchronous exception.
 --
 -- This module is designed to be imported qualified. We suggest importing it
 -- like:
@@ -38,9 +40,12 @@
 
 module Control.Concurrent.ReadWriteVar
   ( RWVar
+    -- *Creating Read-Write Variables
   , new
+    -- *Reading
   , with
   -- , tryWith
+    -- *Writing
   , modify_
   , modify
   , tryModify_
@@ -75,9 +80,10 @@ import qualified Control.Concurrent.ReadWriteLock as RWLock
 
 
 -------------------------------------------------------------------------------
--- Read Write Variables: concurrent read, sequential write
+-- Read-Write Variables: concurrent read, sequential write
 -------------------------------------------------------------------------------
 
+-- | Concurrently readable and sequentially writable variable.
 data RWVar α = RWVar RWLock (IORef α)
 
 -- | Create a new 'RWVar'.
