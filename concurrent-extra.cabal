@@ -37,11 +37,13 @@ flag nolib
 library
   build-depends: base                 >= 3     && < 4.3
                , base-unicode-symbols >= 0.1.1 && < 0.2
+               , stm                  >= 2.1.1 && < 2.2
   exposed-modules: Control.Concurrent.Lock
                  , Control.Concurrent.RLock
                  , Control.Concurrent.Event
                  , Control.Concurrent.ReadWriteLock
                  , Control.Concurrent.ReadWriteVar
+                 , Control.Concurrent.STM.Event
   ghc-options: -Wall
 
   if flag(nolib)
