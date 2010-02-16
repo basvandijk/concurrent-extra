@@ -51,7 +51,7 @@ library
 
 -------------------------------------------------------------------------------
 
-executable test
+executable test-concurrent-extra
   main-is: test.hs
   ghc-options: -Wall
 

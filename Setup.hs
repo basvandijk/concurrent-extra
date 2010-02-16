@@ -40,7 +40,11 @@ main = defaultMainWithHooks hooks
 -- Run a 'test' binary that gets built when configured with '-ftest'.
 runTests' ∷ Args → Bool → PackageDescription → LocalBuildInfo → IO ()
 runTests' _ _ _ _ = system testcmd >> return ()
-  where testcmd = "." </> "dist" </> "build" </> "test" </> "test"
+  where testcmd = "."
+                  </> "dist"
+                  </> "build"
+                  </> "test-concurrent-extra"
+                  </> "test-concurrent-extra"
 
 -- Define __HADDOCK__ for CPP when running haddock.
 haddockHook' ∷ PackageDescription → LocalBuildInfo → UserHooks → HaddockFlags → IO ()
