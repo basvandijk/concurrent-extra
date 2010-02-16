@@ -18,6 +18,9 @@
 --
 -- <http://java.sun.com/javase/7/docs/api/java/util/concurrent/locks/Lock.html>
 --
+-- All functions are /exception safe/. Throwing asynchronous exceptions will not
+-- compromise the internal state of a 'Lock'.
+--
 -- This module is intended to be imported qualified. We suggest importing it like:
 --
 -- @
@@ -126,9 +129,9 @@ release (Lock mv) = do
   b ← tryPutMVar mv ()
   when (not b) $ error "Control.Concurrent.Lock.release: Can't release unlocked Lock!"
 
-{-| A convenience function which first acquires the lock then performs the
-computation. When the computation terminates, whether normally or by raising an
-exception, the lock is released.
+{-| A convenience function which first acquires the lock and then
+performs the computation. When the computation terminates, whether
+normally or by raising an exception, the lock is released.
 
 Note that: @with = 'liftA2' 'bracket_' 'acquire' 'release'@.
 -}
@@ -150,8 +153,8 @@ tryWith l a = block $ do
 
 -- | Determines if the lock is in the locked state.
 --
--- /TODO:/ Should we really define and export this function? Is there a
--- compelling use-case?
+-- Notice that this is only a snapshot of the state. By the time a program
+-- reacts on its result it may already be out of date.
 locked ∷ Lock → IO Bool
 locked = isEmptyMVar ∘ un
 

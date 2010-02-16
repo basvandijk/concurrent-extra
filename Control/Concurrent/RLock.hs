@@ -1,5 +1,35 @@
 {-# LANGUAGE UnicodeSyntax, NoImplicitPrelude #-}
 
+--------------------------------------------------------------------------------
+-- |
+-- Module     : Control.Concurrent.RLock
+-- Copyright  : (c) 2010 Bas van Dijk & Roel van Dijk
+-- License    : BSD3 (see the file LICENSE)
+-- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>
+--            , Roel van Dijk <vandijk.roel@gmail.com>
+--
+-- This module provides the 'RLock' concurrent synchronization mechanism. It was
+-- inspired by the Python @RLock@ and Java @ReentrantLock@ objects and should
+-- behave in a similar way. See:
+--
+-- <http://docs.python.org/3.1/library/threading.html#rlock-objects>
+--
+-- and:
+--
+-- <http://java.sun.com/javase/7/docs/api/java/util/concurrent/locks/ReentrantLock.html>
+--
+-- All functions are /exception safe/. Throwing asynchronous exceptions will not
+-- compromise the internal state of a 'RLock'.
+--
+-- This module is intended to be imported qualified. We suggest importing it like:
+--
+-- @
+-- import           Control.Concurrent.RLock          ( RLock )
+-- import qualified Control.Concurrent.RLock as RLock ( ... )
+-- @
+--
+--------------------------------------------------------------------------------
+
 module Control.Concurrent.RLock
     ( RLock
 
@@ -30,7 +60,7 @@ module Control.Concurrent.RLock
 import Control.Applicative     ( (<$>), liftA2 )
 import Control.Concurrent      ( ThreadId, myThreadId )
 import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, readMVar, putMVar )
-import Control.Exception       ( block, unblock, bracket_, finally )
+import Control.Exception       ( block, bracket_, finally )
 import Control.Monad           ( Monad, return, (>>=), fail, (>>), fmap )
 import Data.Bool               ( Bool(False, True), otherwise )
 import Data.Function           ( ($) )
@@ -76,7 +106,7 @@ acquire (RLock mv) = do
                            sn `seq` putMVar mv $ Just (tid, sn, lock)
 
         | otherwise   → do putMVar mv mb
-                           unblock $ Lock.acquire lock
+                           Lock.acquire lock
 
 tryAcquire ∷ RLock → IO Bool
 tryAcquire (RLock mv) = do

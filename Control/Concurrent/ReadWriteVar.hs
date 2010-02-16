@@ -25,8 +25,10 @@
 --
 -- * @'modify_' v '$' 'const' '$' 'modify_' v '$' 'const' 'undefined'@
 --
--- Note that threads blocking on 'with' or 'modify' and friends can still be
--- unblocked by throwing an asynchronous exception.
+-- All functions are /exception safe/. Throwing asynchronous exceptions will not
+-- compromise the internal state of an 'RWVar'. This also means that threads
+-- blocking on 'with' or 'modify' and friends can still be unblocked by throwing
+-- an asynchronous exception.
 --
 -- This module is designed to be imported qualified. We suggest importing it
 -- like:

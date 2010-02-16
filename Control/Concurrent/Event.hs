@@ -61,7 +61,7 @@ import Data.Eq                 ( Eq )
 import Data.Function           ( ($), const )
 import Data.Int                ( Int )
 import Data.Maybe              ( isJust )
-import Data.Ord                ( max )
+import Data.Ord                ( Ord, max )
 import Data.Tuple              ( fst )
 import Prelude                 ( Enum, fromInteger )
 import System.IO               ( IO )
@@ -83,10 +83,12 @@ import qualified Control.Concurrent.Lock as Lock ( newAcquired
 -- Events
 -------------------------------------------------------------------------------
 
-data State = Cleared | Set deriving (Enum, Eq, Show, Read)
-
 -- | An event is in one of two possible states: 'Set' or 'Cleared'.
 newtype Event = Event {unEvent ∷ (MVar (State, [Lock]))}
+
+-- | The internal state of an 'Event'. Only interesting when you use
+-- the 'state' function.
+data State = Cleared | Set deriving (Enum, Eq, Ord, Show, Read)
 
 -- | Create an event. The initial state is 'Cleared'.
 new ∷ IO Event
@@ -106,7 +108,7 @@ wait (Event mv) = block $ do
     Set     → putMVar mv t
     Cleared → do l ← Lock.newAcquired
                  putMVar mv $ second (l:) t
-                 unblock $ Lock.acquire l
+                 Lock.acquire l
 
 -- | Block until the event is 'set' or until a timer expires.
 --
