@@ -29,6 +29,7 @@ import Prelude.Unicode       ( (⋅) )
 
 -- from concurrent-extra
 import qualified Control.Concurrent.Lock  as Lock
+import qualified Control.Concurrent.RLock as RLock
 import qualified Control.Concurrent.Event as Event
 
 -- from HUnit
@@ -39,7 +40,6 @@ import Test.Framework  ( Test, defaultMain, testGroup )
 
 -- from test-framework-hunit
 import Test.Framework.Providers.HUnit ( testCase )
-
 
 
 -------------------------------------------------------------------------------
@@ -59,7 +59,7 @@ tests = [ testGroup "Events"
           , testCase "multi wake"    $ test_event_3 10
           , testCase "exception"     $ test_event_4
           , testCase "wait timeout"  $ test_event_5
-          , testCase "foo!"          $ test_event_6
+          , testCase "wait blocks"   $ test_event_6
           ]
         , testGroup "Lock"
           [ testCase "acquire release"    test_lock_1
@@ -71,7 +71,8 @@ tests = [ testGroup "Events"
           , testCase "conc release"       test_lock_7
           ]
         , testGroup "RLock"
-          [
+          [ testCase "recursive acquire"  $ test_rlock_1 5
+          , testCase "conc acquire"       $ test_rlock_2
           ]
         ]
 
@@ -183,7 +184,38 @@ test_lock_7 = assert ∘ within (10 ⋅ a_moment) $ do
 -- RLocks
 --------------------------------------------------------------------------------
 
--- TODO
+test_rlock_1 ∷ Int → Assertion
+test_rlock_1 n = assert ∘ within (10 ⋅ a_moment) $ do
+  l ← RLock.new
+  replicateM_ n $ RLock.acquire l
+  replicateM_ n $ RLock.release l
+
+-- Tests for bug found by Felipe Lessa.
+test_rlock_2 ∷ Assertion
+test_rlock_2 = assert ∘ within (20 ⋅ a_moment) $ do
+  rl           ← RLock.new
+  t1_has_rlock ← Event.new
+  t1_done      ← Event.new
+  t2_done      ← Event.new
+
+  -- Thread 1
+  _ ← forkIO $ do
+    RLock.acquire rl
+    Event.set t1_has_rlock
+    threadDelay $ 10 ⋅ a_moment
+    RLock.release rl
+    Event.set t1_done
+
+  -- Thread 2
+  _ ← forkIO $ do
+    Event.wait t1_has_rlock
+    RLock.acquire rl
+    RLock.release rl
+    Event.set t2_done
+
+  Event.wait t1_done
+  Event.wait t2_done
+
 
 -------------------------------------------------------------------------------
 -- Misc

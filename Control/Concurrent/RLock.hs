@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE BangPatterns, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
 --------------------------------------------------------------------------------
 -- |
@@ -66,84 +66,87 @@ import Data.Bool               ( Bool(False, True), otherwise )
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
 import Data.Maybe              ( Maybe(Nothing, Just), maybe )
-import Data.List               ( (++) )
+import Data.Tuple              ( fst, snd )
 import Data.Typeable           ( Typeable )
-import Prelude                 ( Integer, fromInteger, succ, pred, error, seq )
+import Prelude                 ( Integer, fromInteger, succ, pred, error )
 import System.IO               ( IO )
 
 -- from base-unicode-symbols
 import Data.Eq.Unicode         ( (≡) )
 import Data.Function.Unicode   ( (∘) )
+import Data.Monoid.Unicode     ( (⊕) )
 
 -- from ourselves:
 import           Control.Concurrent.Lock ( Lock )
 import qualified Control.Concurrent.Lock as Lock
-    ( newAcquired, acquire, release )
+    ( new, newAcquired, acquire, release )
 
 
 --------------------------------------------------------------------------------
 -- Reentrant locks
 --------------------------------------------------------------------------------
 
-newtype RLock = RLock {un ∷ MVar (Maybe (ThreadId, Integer, Lock))}
+newtype RLock = RLock {un ∷ MVar (Maybe (ThreadId, Integer), Lock)}
     deriving (Eq, Typeable)
 
 new ∷ IO RLock
-new = RLock <$> newMVar Nothing
+new = do lock ← Lock.new
+         RLock <$> newMVar (Nothing, lock)
 
 newAcquired ∷ IO RLock
 newAcquired = do myTID ← myThreadId
                  lock ← Lock.newAcquired
-                 RLock <$> newMVar (Just (myTID, 1, lock))
+                 RLock <$> newMVar (Just (myTID, 1), lock)
 
 acquire ∷ RLock → IO ()
 acquire (RLock mv) = do
   myTID ← myThreadId
-  block $ do
-    mb ← takeMVar mv
-    case mb of
-      Nothing         → do lock ← Lock.newAcquired
-                           putMVar mv $ Just (myTID, 1, lock)
-      Just (tid, n, lock)
-        | myTID ≡ tid → do let sn = succ n
-                           sn `seq` putMVar mv $ Just (tid, sn, lock)
-
-        | otherwise   → do putMVar mv mb
-                           Lock.acquire lock
+  block $ let go = do t@(mb, lock) ← takeMVar mv
+                      case mb of
+                        Nothing         → do Lock.acquire lock
+                                             putMVar mv (Just (myTID, 1), lock)
+                        Just (tid, n)
+                          | myTID ≡ tid → let !sn = succ n
+                                          in putMVar mv (Just (tid, sn), lock)
+                          | otherwise   → do putMVar mv t
+                                             Lock.acquire lock
+                                             Lock.release lock
+                                             go
+          in go
 
 tryAcquire ∷ RLock → IO Bool
 tryAcquire (RLock mv) = do
   myTID ← myThreadId
   block $ do
-    mb ← takeMVar mv
+    t@(mb, lock) ← takeMVar mv
     case mb of
-      Nothing         → do lock ← Lock.newAcquired
-                           putMVar mv $ Just (myTID, 1, lock)
+      Nothing         → do Lock.acquire lock
+                           putMVar mv (Just (myTID, 1), lock)
                            return True
-      Just (tid, n, lock)
-        | myTID ≡ tid → do let sn = succ n
-                           sn `seq` putMVar mv $ Just (tid, sn, lock)
+      Just (tid, n)
+        | myTID ≡ tid → do let !sn = succ n
+                           putMVar mv (Just (tid, sn), lock)
                            return True
 
-        | otherwise   → do putMVar mv mb
+        | otherwise   → do putMVar mv t
                            return False
 
 release ∷ RLock → IO ()
 release (RLock mv) = do
   myTID ← myThreadId
   block $ do
-    mb ← takeMVar mv
-    let myError str = do putMVar mv mb
-                         error $ "Control.Concurrent.RLock.release: " ++ str
+    t@(mb, lock) ← takeMVar mv
+    let err msg = do putMVar mv t
+                     error $ "Control.Concurrent.RLock.release: " ⊕ msg
     case mb of
-      Nothing → myError "Can't release an unacquired RLock!"
-      Just (tid, n, lock)
+      Nothing → err "Can't release an unacquired RLock!"
+      Just (tid, n)
         | myTID ≡ tid → if n ≡ 1
                         then do Lock.release lock
-                                putMVar mv Nothing
-                        else do let pn = pred n
-                                pn `seq` putMVar mv $ Just (tid, pn, lock)
-        | otherwise → myError "Calling thread does not own the RLock!"
+                                putMVar mv (Nothing, lock)
+                        else let !pn = pred n
+                             in putMVar mv (Just (tid, pn), lock)
+        | otherwise → err "Calling thread does not own the RLock!"
 
 with ∷ RLock → IO α → IO α
 with = liftA2 bracket_ acquire release
@@ -156,7 +159,7 @@ tryWith l a = block $ do
     else return Nothing
 
 recursionLevel ∷ RLock → IO Integer
-recursionLevel = fmap (maybe 0 (\(_, n, _) → n)) ∘ readMVar ∘ un
+recursionLevel = fmap (maybe 0 snd ∘ fst) ∘ readMVar ∘ un
 
 
 -- The End ---------------------------------------------------------------------
