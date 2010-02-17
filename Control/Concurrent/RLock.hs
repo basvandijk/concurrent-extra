@@ -8,9 +8,9 @@
 -- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>
 --            , Roel van Dijk <vandijk.roel@gmail.com>
 --
--- This module provides the 'RLock' concurrent synchronization mechanism. It was
--- inspired by the Python @RLock@ and Java @ReentrantLock@ objects and should
--- behave in a similar way. See:
+-- This module provides the 'RLock' synchronization mechanism. It was inspired
+-- by the Python @RLock@ and Java @ReentrantLock@ objects and should behave in a
+-- similar way. See:
 --
 -- <http://docs.python.org/3.1/library/threading.html#rlock-objects>
 --

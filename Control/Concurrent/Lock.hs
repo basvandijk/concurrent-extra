@@ -8,9 +8,8 @@
 -- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>
 --            , Roel van Dijk <vandijk.roel@gmail.com>
 --
--- This module provides the 'Lock' concurrent synchronization mechanism. It was
--- inspired by the Python and Java @Lock@ objects and should behave in a similar
--- way. See:
+-- This module provides the 'Lock' synchronization mechanism. It was inspired by
+-- the Python and Java @Lock@ objects and should behave in a similar way. See:
 --
 -- <http://docs.python.org/3.1/library/threading.html#lock-objects>
 --

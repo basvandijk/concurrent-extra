@@ -282,4 +282,5 @@ moduleName = "Control.Concurrent.ReadWriteLock"
 void ∷ Functor f ⇒ f α → f ()
 void = (const () <$>)
 
+
 -- The End --------------------------------------------------------------------

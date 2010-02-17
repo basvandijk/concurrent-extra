@@ -13,6 +13,26 @@ license-file:  LICENSE
 category:      Concurrency
 synopsis:      Extra concurrency primitives
 description:
+  Offers a selection of synchronization primitives:
+  .
+  * Lock: Enforce exclusive access to a resource. Also known as a
+    binary semaphore.
+  .
+  * RLock: A lock which can be acquired multiple times by the same
+    thread. Also known as a reentrant mutex.
+  .
+  * Event: Wake multiple threads by signaling an event.
+  .
+  * ReadWriteLock: Multiple-reader, single-writer locks. Used to
+    protect shared resources which may be concurrently read, but only
+    sequentially written.
+  .
+  * ReadWriteVar: Concurrent read, sequential write variables.
+  .
+  Please consult the API documentation of the individual modules for
+  more detailed information.
+  .
+  Inspired by the concurrency libraries of Java and Python.
 
 --source-repository head
 --  Type: darcs
