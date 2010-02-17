@@ -13,7 +13,7 @@
 --
 -- Each event has an internal 'State' which is either 'Set' or 'Cleared'. This
 -- state can be changed with the corresponding functions 'set' and 'clear'. The
--- 'wait' function blocks until the state is 'Set'. An importand property of
+-- 'wait' function blocks until the state is 'Set'. An important property of
 -- setting an event is that /all/ threads waiting for it are woken.
 --
 -- It was inspired by the Python @Event@ object. See:
@@ -135,9 +135,9 @@ waitTimeout (Event mv) time = block $ do
                    Nothing → do modifyMVar_ mv $ return ∘ second (delete l)
                                 return False
 
--- | Changes the state of the event to 'Set'. All threads that where 'wait'ing
--- for this event are woken. Threads that 'wait' after the state is changed to
--- 'Set' will not block at all.
+-- | Changes the state of the event to 'Set'. All threads that where waiting for
+-- this event are woken. Threads that 'wait' after the state is changed to 'Set'
+-- will not block at all.
 set ∷ Event → IO ()
 set (Event mv) = modifyMVar_ mv $ \(_, ls) → do
                    forM_ ls Lock.release

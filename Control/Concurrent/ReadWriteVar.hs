@@ -19,7 +19,7 @@
 -- computations inside a 'with' \"block\" observe the same value.
 --
 -- Observing and changing the contents of an 'RWVar' are mutually exclusive. The
--- 'with' function will block if 'modify' is active and vice versa. Furthermore
+-- 'with' function will block if 'modify' is active and vice-versa. Furthermore
 -- 'with' is fully sequential and will also block on concurrent calls of 'with'.
 --
 -- The following are guaranteed deadlocks:

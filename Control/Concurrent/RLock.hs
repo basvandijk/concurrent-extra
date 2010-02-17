@@ -47,7 +47,7 @@ module Control.Concurrent.RLock
     , with
     , tryWith
 
-      -- * Quering reentrant locks
+      -- * Querying reentrant locks
     , recursionLevel
     ) where
 
