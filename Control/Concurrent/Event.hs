@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
 -------------------------------------------------------------------------------
 -- |
@@ -53,14 +53,12 @@ import Control.Concurrent.MVar ( MVar, newMVar
                                , takeMVar, putMVar, readMVar, modifyMVar_
                                )
 import Control.Exception       ( block, unblock )
-import Data.Bool               ( Bool(True) )
-#if __HADDOCK__
-import Data.Bool               ( Bool(False) )
-#endif
+import Data.Bool               ( Bool(False, True) )
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($), const )
 import Data.Int                ( Int )
-import Data.Maybe              ( isJust )
+import Data.List               ( delete )
+import Data.Maybe              ( Maybe(Nothing, Just) )
 import Data.Ord                ( Ord, max )
 import Data.Tuple              ( fst )
 import Data.Typeable           ( Typeable )
@@ -131,16 +129,19 @@ waitTimeout (Event mv) time = block $ do
                  return True
     Cleared → do l ← Lock.newAcquired
                  putMVar mv $ second (l:) t
-                 unblock $ isJust <$> timeout (max time 0) (Lock.acquire l)
+                 r ← unblock $ timeout (max time 0) (Lock.acquire l)
+                 case r of
+                   Just () → return True
+                   Nothing → do modifyMVar_ mv $ return ∘ second (delete l)
+                                return False
 
 -- | Changes the state of the event to 'Set'. All threads that where 'wait'ing
 -- for this event are woken. Threads that 'wait' after the state is changed to
 -- 'Set' will not block at all.
 set ∷ Event → IO ()
-set (Event mv) = block $ do
-  (_, ls) ← takeMVar mv
-  forM_ ls Lock.release
-  putMVar mv (Set, [])
+set (Event mv) = modifyMVar_ mv $ \(_, ls) → do
+                   forM_ ls Lock.release
+                   return (Set, [])
 
 -- | Changes the state of the event to 'Cleared'. Threads that 'wait' after the
 -- state is changed to 'Cleared' will block until the state is changed to 'Set'.
