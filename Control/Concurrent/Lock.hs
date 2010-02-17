@@ -1,4 +1,4 @@
-{-# LANGUAGE UnicodeSyntax, NoImplicitPrelude #-}
+{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
 --------------------------------------------------------------------------------
 -- |
@@ -66,8 +66,10 @@ import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
 import Control.Exception       ( block, bracket_, finally )
 import Control.Monad           ( Monad, return, (>>=), fail, when, fmap )
 import Data.Bool               ( Bool, not )
+import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
 import Data.Maybe              ( Maybe(Nothing, Just), isJust )
+import Data.Typeable           ( Typeable )
 import Prelude                 ( error )
 import System.IO               ( IO )
 
@@ -80,7 +82,7 @@ import Data.Function.Unicode   ( (∘) )
 --------------------------------------------------------------------------------
 
 {-| A lock is in one of two states, \"locked\" or \"unlocked\". -}
-newtype Lock = Lock { un ∷ MVar () }
+newtype Lock = Lock {un ∷ MVar ()} deriving (Eq, Typeable)
 
 -- | Create an unlocked lock.
 new ∷ IO Lock

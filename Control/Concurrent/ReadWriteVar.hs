@@ -1,4 +1,9 @@
-{-# LANGUAGE CPP, NoImplicitPrelude, TupleSections, UnicodeSyntax #-}
+{-# LANGUAGE CPP
+           , DeriveDataTypeable
+           , NoImplicitPrelude
+           , TupleSections
+           , UnicodeSyntax
+  #-}
 
 -------------------------------------------------------------------------------
 -- |
@@ -64,9 +69,11 @@ import Control.Monad           ( return, (>>=), return, fail, (>>)
                                , fmap, liftM2
                                )
 import Data.Bool               ( Bool(..) )
+import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
 import Data.Maybe              ( Maybe(..), isJust )
 import Data.IORef              ( IORef, newIORef, readIORef, writeIORef )
+import Data.Typeable           ( Typeable )
 import System.IO               ( IO )
 #ifdef __HADDOCK__
 import Data.Function           ( const )
@@ -86,7 +93,7 @@ import qualified Control.Concurrent.ReadWriteLock as RWLock
 -------------------------------------------------------------------------------
 
 -- | Concurrently readable and sequentially writable variable.
-data RWVar α = RWVar RWLock (IORef α)
+data RWVar α = RWVar RWLock (IORef α) deriving (Eq, Typeable)
 
 -- | Create a new 'RWVar'.
 new ∷ α → IO (RWVar α)

@@ -1,4 +1,5 @@
-{-# LANGUAGE NamedFieldPuns
+{-# LANGUAGE DeriveDataTypeable
+           , NamedFieldPuns
            , NoImplicitPrelude
            , TupleSections
            , UnicodeSyntax
@@ -70,10 +71,11 @@ import Control.Monad           ( return, (>>=), return, fail, (>>)
                                )
 import Data.Bool               ( Bool(False, True) )
 import Data.Char               ( String )
-import Data.Eq                 ( (==) )
+import Data.Eq                 ( Eq, (==) )
 import Data.Function           ( ($), const )
 import Data.Int                ( Int )
 import Data.Maybe              ( Maybe(Nothing, Just) )
+import Data.Typeable           ( Typeable )
 import Prelude                 ( fromInteger, succ, pred
                                , ($!), error
                                )
@@ -104,7 +106,7 @@ from acquiring both read and write access.
 data RWLock = RWLock { state     ∷ MVar State
                      , readLock  ∷ Lock
                      , writeLock ∷ Lock
-                     }
+                     } deriving (Eq, Typeable)
 
 -- | Internal state of the 'RWLock'.
 data State = Free | Read Int | Write

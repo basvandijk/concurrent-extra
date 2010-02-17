@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
 -------------------------------------------------------------------------------
 -- |
@@ -49,7 +49,9 @@ import Control.Applicative         ( (<$>) )
 import Control.Monad               ( (>>=), fail, when )
 import Control.Concurrent.STM      ( STM, retry )
 import Control.Concurrent.STM.TVar ( TVar, newTVar, readTVar, writeTVar )
+import Data.Eq                     ( Eq )
 import Data.Function               ( ($) )
+import Data.Typeable               ( Typeable )
 
 -- from base-unicode-symbols
 import Data.Eq.Unicode         ( (≡) )
@@ -63,7 +65,7 @@ import Control.Concurrent.Event ( State(Cleared, Set) )
 -------------------------------------------------------------------------------
 
 -- | An event is in one of two possible states: 'Set' or 'Cleared'.
-newtype Event = Event (TVar State)
+newtype Event = Event (TVar State) deriving (Eq, Typeable)
 
 -- | Create an event. The initial state is 'Cleared'.
 new ∷ STM Event

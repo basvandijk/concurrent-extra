@@ -1,4 +1,4 @@
-{-# LANGUAGE UnicodeSyntax, NoImplicitPrelude #-}
+{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
 --------------------------------------------------------------------------------
 -- |
@@ -63,9 +63,11 @@ import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, readMVar, putMVar )
 import Control.Exception       ( block, bracket_, finally )
 import Control.Monad           ( Monad, return, (>>=), fail, (>>), fmap )
 import Data.Bool               ( Bool(False, True), otherwise )
+import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
 import Data.Maybe              ( Maybe(Nothing, Just), maybe )
 import Data.List               ( (++) )
+import Data.Typeable           ( Typeable )
 import Prelude                 ( Integer, fromInteger, succ, pred, error, seq )
 import System.IO               ( IO )
 
@@ -84,6 +86,7 @@ import qualified Control.Concurrent.Lock as Lock
 --------------------------------------------------------------------------------
 
 newtype RLock = RLock {un ∷ MVar (Maybe (ThreadId, Integer, Lock))}
+    deriving (Eq, Typeable)
 
 new ∷ IO RLock
 new = RLock <$> newMVar Nothing

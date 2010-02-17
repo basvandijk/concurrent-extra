@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
 -------------------------------------------------------------------------------
 -- |
@@ -63,6 +63,7 @@ import Data.Int                ( Int )
 import Data.Maybe              ( isJust )
 import Data.Ord                ( Ord, max )
 import Data.Tuple              ( fst )
+import Data.Typeable           ( Typeable )
 import Prelude                 ( Enum, fromInteger )
 import System.IO               ( IO )
 import System.Timeout          ( timeout )
@@ -85,10 +86,11 @@ import qualified Control.Concurrent.Lock as Lock ( newAcquired
 
 -- | An event is in one of two possible states: 'Set' or 'Cleared'.
 newtype Event = Event {unEvent ∷ (MVar (State, [Lock]))}
+    deriving (Eq, Typeable)
 
 -- | The internal state of an 'Event'. Only interesting when you use
 -- the 'state' function.
-data State = Cleared | Set deriving (Enum, Eq, Ord, Show, Read)
+data State = Cleared | Set deriving (Enum, Eq, Ord, Show, Read, Typeable)
 
 -- | Create an event. The initial state is 'Cleared'.
 new ∷ IO Event
