@@ -1,5 +1,5 @@
 name:          concurrent-extra
-version:       0.1.0.1
+version:       0.2
 cabal-version: >= 1.6
 build-type:    Custom
 stability:     experimental
@@ -61,9 +61,12 @@ library
   exposed-modules: Control.Concurrent.Lock
                  , Control.Concurrent.RLock
                  , Control.Concurrent.Event
+                 , Control.Concurrent.Broadcast
                  , Control.Concurrent.ReadWriteLock
                  , Control.Concurrent.ReadWriteVar
+                 , Control.Concurrent.Thread
                  , Control.Concurrent.STM.Event
+                 , Control.Concurrent.STM.Broadcast
   ghc-options: -Wall
 
   if flag(nolib)

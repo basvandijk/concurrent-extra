@@ -32,14 +32,14 @@
 
 module Control.Concurrent.Event
   ( Event
-  , State(..)
   , new
   , wait
   , waitTimeout
   , set
   , clear
-  , state
+  , isSet
   ) where
+
 
 -------------------------------------------------------------------------------
 -- Imports
@@ -47,35 +47,21 @@ module Control.Concurrent.Event
 
 -- from base
 import Control.Applicative     ( (<$>) )
-import Control.Arrow           ( first, second )
-import Control.Monad           ( (>>=), (>>), return, fmap, forM_, fail )
-import Control.Concurrent.MVar ( MVar, newMVar
-                               , takeMVar, putMVar, readMVar, modifyMVar_
-                               )
-import Control.Exception       ( block, unblock )
-import Data.Bool               ( Bool(False, True) )
+import Control.Monad           ( fmap  )
+import Data.Bool               ( Bool )
 import Data.Eq                 ( Eq )
-import Data.Function           ( ($), const )
 import Data.Int                ( Int )
-import Data.List               ( delete )
-import Data.Maybe              ( Maybe(Nothing, Just) )
-import Data.Ord                ( Ord, max )
-import Data.Tuple              ( fst )
+import Data.Maybe              ( isJust )
 import Data.Typeable           ( Typeable )
-import Prelude                 ( Enum, fromInteger )
 import System.IO               ( IO )
-import System.Timeout          ( timeout )
-import Text.Read               ( Read )
-import Text.Show               ( Show )
 
 -- from base-unicode-symbols
 import Data.Function.Unicode   ( (∘) )
 
 -- from concurrent-extra
-import           Control.Concurrent.Lock         ( Lock )
-import qualified Control.Concurrent.Lock as Lock ( newAcquired
-                                                 , acquire, release
-                                                 )
+import           Control.Concurrent.Broadcast ( Broadcast )
+import qualified Control.Concurrent.Broadcast as Broadcast
+    ( new, read, tryRead, readTimeout, write, clear )
 
 
 -------------------------------------------------------------------------------
@@ -83,16 +69,11 @@ import qualified Control.Concurrent.Lock as Lock ( newAcquired
 -------------------------------------------------------------------------------
 
 -- | An event is in one of two possible states: 'Set' or 'Cleared'.
-newtype Event = Event {unEvent ∷ (MVar (State, [Lock]))}
-    deriving (Eq, Typeable)
-
--- | The internal state of an 'Event'. Only interesting when you use
--- the 'state' function.
-data State = Cleared | Set deriving (Enum, Eq, Ord, Show, Read, Typeable)
+newtype Event = Event {evBroadcast ∷ Broadcast ()} deriving (Eq, Typeable)
 
 -- | Create an event. The initial state is 'Cleared'.
 new ∷ IO Event
-new = Event <$> newMVar (Cleared, [])
+new = Event <$> Broadcast.new
 
 -- | Block until the event is 'set'.
 --
@@ -102,13 +83,7 @@ new = Event <$> newMVar (Cleared, [])
 -- You can also stop a thread that is waiting for an event by throwing an
 -- asynchronous exception.
 wait ∷ Event → IO ()
-wait (Event mv) = block $ do
-  t@(st, _) ← takeMVar mv
-  case st of
-    Set     → putMVar mv t
-    Cleared → do l ← Lock.newAcquired
-                 putMVar mv $ second (l:) t
-                 Lock.acquire l
+wait = Broadcast.read ∘ evBroadcast
 
 -- | Block until the event is 'set' or until a timer expires.
 --
@@ -122,36 +97,21 @@ wait (Event mv) = block $ do
 -- type. The Haskell standard guarantees an upper bound of at least @2^29-1@
 -- giving a maximum timeout of at least @(2^29-1) / 10^6@ = ~536 seconds.
 waitTimeout ∷ Event → Int → IO Bool
-waitTimeout (Event mv) time = block $ do
-  t@(st, _) ← takeMVar mv
-  case st of
-    Set     → do putMVar mv t
-                 return True
-    Cleared → do l ← Lock.newAcquired
-                 putMVar mv $ second (l:) t
-                 r ← unblock $ timeout (max time 0) (Lock.acquire l)
-                 case r of
-                   Just () → return True
-                   Nothing → do modifyMVar_ mv $ return ∘ second (delete l)
-                                return False
+waitTimeout ev time = isJust <$> Broadcast.readTimeout (evBroadcast ev) time
 
 -- | Changes the state of the event to 'Set'. All threads that where waiting for
 -- this event are woken. Threads that 'wait' after the state is changed to 'Set'
 -- will not block at all.
 set ∷ Event → IO ()
-set (Event mv) = modifyMVar_ mv $ \(_, ls) → do
-                   forM_ ls Lock.release
-                   return (Set, [])
+set ev = Broadcast.write (evBroadcast ev) ()
 
 -- | Changes the state of the event to 'Cleared'. Threads that 'wait' after the
 -- state is changed to 'Cleared' will block until the state is changed to 'Set'.
 clear ∷ Event → IO ()
-clear (Event mv) = modifyMVar_ mv $ return ∘ first (const Cleared)
+clear = Broadcast.clear ∘ evBroadcast
 
--- | Determines the current state of the event.
---
--- Notice that this is only a snapshot of the state. By the time a program
--- reacts on its result it may already be out of date. This can be avoided by
--- synchronizing access to the event between threads.
-state ∷ Event → IO State
-state = fmap fst ∘ readMVar ∘ unEvent
+isSet ∷ Event → IO Bool
+isSet = fmap isJust ∘ Broadcast.tryRead ∘ evBroadcast
+
+
+-- The End ---------------------------------------------------------------------

@@ -32,32 +32,34 @@
 
 module Control.Concurrent.STM.Event
   ( Event
-  , State(..)
   , new
   , wait
   , set
   , clear
-  , state
+  , isSet
   ) where
+
 
 -------------------------------------------------------------------------------
 -- Imports
 -------------------------------------------------------------------------------
 
 -- from base
-import Control.Applicative         ( (<$>) )
-import Control.Monad               ( (>>=), fail, when )
-import Control.Concurrent.STM      ( STM, retry )
-import Control.Concurrent.STM.TVar ( TVar, newTVar, readTVar, writeTVar )
-import Data.Eq                     ( Eq )
-import Data.Function               ( ($) )
-import Data.Typeable               ( Typeable )
+import Control.Applicative     ( (<$>) )
+import Control.Monad           ( fmap  )
+import Control.Concurrent.STM  ( STM )
+import Data.Bool               ( Bool )
+import Data.Eq                 ( Eq )
+import Data.Maybe              ( isJust )
+import Data.Typeable           ( Typeable )
 
 -- from base-unicode-symbols
-import Data.Eq.Unicode         ( (≡) )
+import Data.Function.Unicode   ( (∘) )
 
 -- from concurrent-extra
-import Control.Concurrent.Event ( State(Cleared, Set) )
+import           Control.Concurrent.STM.Broadcast ( Broadcast )
+import qualified Control.Concurrent.STM.Broadcast as Broadcast
+    ( new, read, tryRead, write, clear )
 
 
 -------------------------------------------------------------------------------
@@ -65,39 +67,32 @@ import Control.Concurrent.Event ( State(Cleared, Set) )
 -------------------------------------------------------------------------------
 
 -- | An event is in one of two possible states: 'Set' or 'Cleared'.
-newtype Event = Event (TVar State) deriving (Eq, Typeable)
+newtype Event = Event {evBroadcast ∷ Broadcast ()} deriving (Eq, Typeable)
 
 -- | Create an event. The initial state is 'Cleared'.
 new ∷ STM Event
-new = Event <$> newTVar Cleared
+new = Event <$> Broadcast.new
 
 -- | Retry until the event is 'set'.
 --
 -- If the state of the event is already 'Set' this function will return
 -- immediately. Otherwise it will retry until another thread calls 'set'.
---
--- You can also stop a thread that is waiting for an event by throwing an
--- asynchronous exception.
 wait ∷ Event → STM ()
-wait (Event tv) = do
-  st ← readTVar tv
-  when (st ≡ Cleared) retry
+wait = Broadcast.read ∘ evBroadcast
 
 -- | Changes the state of the event to 'Set'. All threads that where waiting for
 -- this event are woken. Threads that 'wait' after the state is changed to 'Set'
 -- will not retry.
 set ∷ Event → STM ()
-set (Event tv) = do
-  st ← readTVar tv
-  when (st ≡ Cleared) $ writeTVar tv Set
+set ev = Broadcast.write (evBroadcast ev) ()
 
 -- | Changes the state of the event to 'Cleared'. Threads that 'wait' after the
 -- state is changed to 'Cleared' will retry until the state is changed to 'Set'.
 clear ∷ Event → STM ()
-clear (Event tv) = do
-  st ← readTVar tv
-  when (st ≡ Set) $ writeTVar tv Cleared
+clear = Broadcast.clear ∘ evBroadcast
 
--- | The current state of the event.
-state ∷ Event → STM State
-state (Event tv) = readTVar tv
+isSet ∷ Event → STM Bool
+isSet = fmap isJust ∘ Broadcast.tryRead ∘ evBroadcast
+
+
+-- The End ---------------------------------------------------------------------
