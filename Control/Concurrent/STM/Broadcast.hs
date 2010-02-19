@@ -31,17 +31,15 @@ module Control.Concurrent.STM.Broadcast
 
 -- from base
 import Control.Applicative         ( (<$>) )
-import Control.Monad               ( return, (>>=), fail )
+import Control.Monad               ( return, (=<<) )
 import Control.Concurrent.STM      ( STM, retry )
 import Control.Concurrent.STM.TVar ( TVar, newTVar, readTVar, writeTVar )
 import Data.Eq                     ( Eq )
-import Data.Function               ( ($) )
-import Data.Maybe                  ( Maybe(Nothing, Just) )
+import Data.Maybe                  ( Maybe(Nothing, Just), maybe )
 import Data.Typeable               ( Typeable )
 
 -- from base-unicode-symbols
 import Data.Function.Unicode       ( (∘) )
-
 
 
 -------------------------------------------------------------------------------
@@ -55,20 +53,16 @@ new ∷ STM (Broadcast α)
 new = Broadcast <$> newTVar Nothing
 
 read ∷ Broadcast α → STM α
-read (Broadcast tv) = do
-  st ← readTVar tv
-  case st of
-    Just x  → return x
-    Nothing → retry
+read = (maybe retry return =<<) ∘ readTVar ∘ unBroadcast
 
 tryRead ∷ Broadcast α → STM (Maybe α)
-tryRead = readTVar ∘ unBroadcast  
+tryRead = readTVar ∘ unBroadcast
 
 write ∷ Broadcast α → α → STM ()
-write (Broadcast tv) x = writeTVar tv $ Just x
+write b = writeTVar (unBroadcast b) ∘ Just
 
 clear ∷ Broadcast α → STM ()
-clear (Broadcast tv) = writeTVar tv Nothing
- 
+clear b = writeTVar (unBroadcast b) Nothing
+
 
 -- The End ---------------------------------------------------------------------

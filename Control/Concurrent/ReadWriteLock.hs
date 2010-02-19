@@ -67,7 +67,7 @@ import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar
                                )
 import Control.Exception       ( block, bracket_, finally )
 import Control.Monad           ( return, (>>=), return, fail, (>>)
-                               , when, liftM3, Functor
+                               , when, liftM3
                                )
 import Data.Bool               ( Bool(False, True) )
 import Data.Char               ( String )
@@ -89,6 +89,7 @@ import Data.Monoid.Unicode     ( (⊕) )
 import           Control.Concurrent.Lock ( Lock )
 import qualified Control.Concurrent.Lock as Lock
 
+import Utils ( void )
 
 -------------------------------------------------------------------------------
 -- Read Write Lock
@@ -273,14 +274,8 @@ tryWithWrite l a = block $ do
     then Just <$> a `finally` releaseWrite l
     else return Nothing
 
-
--------------------------------------------------------------------------------
-
 moduleName ∷ String
 moduleName = "Control.Concurrent.ReadWriteLock"
-
-void ∷ Functor f ⇒ f α → f ()
-void = (const () <$>)
 
 
 -- The End --------------------------------------------------------------------

@@ -67,6 +67,7 @@ library
                  , Control.Concurrent.Thread
                  , Control.Concurrent.STM.Event
                  , Control.Concurrent.STM.Broadcast
+  other-modules: Utils
   ghc-options: -Wall
 
   if flag(nolib)

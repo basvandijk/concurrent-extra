@@ -65,14 +65,12 @@ module Control.Concurrent.ReadWriteVar
 -------------------------------------------------------------------------------
 
 -- from base
-import Control.Monad           ( return, (>>=), return, fail, (>>)
-                               , fmap, liftM2
-                               )
+import Control.Monad           ( (>>=), fmap, liftM2 )
 import Data.Bool               ( Bool(..) )
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
 import Data.Maybe              ( Maybe(..), isJust )
-import Data.IORef              ( IORef, newIORef, readIORef, writeIORef )
+import Data.IORef              ( IORef, newIORef, readIORef )
 import Data.Typeable           ( Typeable )
 import System.IO               ( IO )
 #ifdef __HADDOCK__
@@ -86,6 +84,8 @@ import Data.Function.Unicode   ( (∘) )
 -- from concurrent-extra
 import           Control.Concurrent.ReadWriteLock ( RWLock )
 import qualified Control.Concurrent.ReadWriteLock as RWLock
+
+import Utils ( modifyIORefM, modifyIORefM_ )
 
 
 -------------------------------------------------------------------------------
@@ -148,20 +148,6 @@ contents could be replaced, 'Nothing' otherwise.
 -}
 tryModify ∷ RWVar α → (α → IO (α, β)) → IO (Maybe β)
 tryModify (RWVar l r) = RWLock.tryWithWrite l ∘ modifyIORefM r
-
-
--------------------------------------------------------------------------------
-
-modifyIORefM ∷ IORef α → (α → IO (α, β)) → IO β
-modifyIORefM r f = do x ← readIORef r
-                      (y, z) ← f x
-                      writeIORef r y
-                      return z
-
-modifyIORefM_ ∷ IORef α → (α → IO α) → IO ()
-modifyIORefM_ r f = do x ← readIORef r
-                       y ← f x
-                       writeIORef r y
 
 
 -- The End --------------------------------------------------------------------

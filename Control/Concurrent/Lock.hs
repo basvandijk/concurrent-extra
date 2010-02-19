@@ -149,7 +149,7 @@ tryWith ∷ Lock → IO α → IO (Maybe α)
 tryWith l a = block $ do
   acquired ← tryAcquire l
   if acquired
-    then fmap Just $ a `finally` release l
+    then Just <$> a `finally` release l
     else return Nothing
 
 -- | Determines if the lock is in the locked state.

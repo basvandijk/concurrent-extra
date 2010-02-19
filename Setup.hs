@@ -4,6 +4,7 @@
 
 module Main (main) where
 
+
 -------------------------------------------------------------------------------
 -- Imports
 -------------------------------------------------------------------------------
@@ -27,6 +28,10 @@ import Distribution.Simple.Program        ( userSpecifyArgs )
 import Distribution.Simple.Setup          ( HaddockFlags )
 import Distribution.PackageDescription    ( PackageDescription(..) )
 
+
+-------------------------------------------------------------------------------
+-- Cabal setup program with support for 'cabal test' and
+-- which sets the CPP define '__HADDOCK __' when haddock is run.
 -------------------------------------------------------------------------------
 
 main ∷ IO ()
@@ -52,3 +57,6 @@ haddockHook' pkg lbi =
   haddockHook simpleUserHooks pkg (lbi { withPrograms = p })
   where
     p = userSpecifyArgs "haddock" ["--optghc=-D__HADDOCK__"] (withPrograms lbi)
+
+
+-- The End ---------------------------------------------------------------------

@@ -1,5 +1,4 @@
 {-# LANGUAGE DeriveDataTypeable
-           , NamedFieldPuns
            , NoImplicitPrelude
            , UnicodeSyntax
   #-}
@@ -11,6 +10,7 @@
 -- License    : BSD3 (see the file LICENSE)
 -- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>
 --            , Roel van Dijk <vandijk.roel@gmail.com>
+--
 -------------------------------------------------------------------------------
 
 module Control.Concurrent.Thread
@@ -31,7 +31,7 @@ module Control.Concurrent.Thread
 -- Imports
 -------------------------------------------------------------------------------
 
--- from base
+-- from base:
 import Control.Applicative ( (<$>) )
 import Control.Exception   ( Exception, SomeException
                            , catch, block, unblock
@@ -51,17 +51,19 @@ import qualified Control.Concurrent as Conc ( ThreadId
                                             , throwTo, killThread
                                             )
 
--- base-unicode-symbols
+-- from base-unicode-symbols:
 import Data.Function.Unicode ( (∘) )
 
--- from concurrent-extra
+-- from concurrent-extra:
 import           Control.Concurrent.Broadcast ( Broadcast )
 import qualified Control.Concurrent.Broadcast as Broadcast
     ( new, write, read, tryRead, readTimeout )
 
+import Utils ( void )
+
 
 -------------------------------------------------------------------------------
--- Measure loop
+-- Threads
 -------------------------------------------------------------------------------
 
 data ThreadId = ThreadId { stopped   ∷ Broadcast (Maybe SomeException)
@@ -73,11 +75,11 @@ instance Ord ThreadId where
 
 fork ∷ (IO () → IO Conc.ThreadId) → IO () → IO ThreadId
 fork f a = do
-  stopped ← Broadcast.new
+  stp ← Broadcast.new
   tid ← f $ block
-          $ catch (unblock a >> Broadcast.write stopped Nothing)
-                  (Broadcast.write stopped ∘ Just)
-  return $ ThreadId stopped tid
+          $ catch (unblock a >> Broadcast.write stp Nothing)
+                  (Broadcast.write stp ∘ Just)
+  return $ ThreadId stp tid
 
 forkIO ∷ IO () → IO ThreadId
 forkIO = fork Conc.forkIO
@@ -96,13 +98,12 @@ isRunning = fmap isNothing ∘ Broadcast.tryRead ∘ stopped
 
 
 -------------------------------------------------------------------------------
--- Convenience
+-- Convenience functions
 -------------------------------------------------------------------------------
 
 killThread ∷ ThreadId → IO ()
 killThread t = do Conc.killThread $ threadId t
-                  _ ← wait t
-                  return ()
+                  void $ wait t
 
 tryKillThread ∷ ThreadId → Int → IO Bool
 tryKillThread t time = do Conc.killThread $ threadId t

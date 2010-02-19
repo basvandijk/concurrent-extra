@@ -240,3 +240,6 @@ assertException errMsg a = do e ← try a
                               case e of
                                 Left (_ ∷ SomeException ) → return ()
                                 Right _ → assertFailure errMsg
+
+
+-- The End ---------------------------------------------------------------------

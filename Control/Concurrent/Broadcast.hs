@@ -30,7 +30,7 @@ module Control.Concurrent.Broadcast
 -- Imports
 -------------------------------------------------------------------------------
 
--- from base
+-- from base:
 import Control.Applicative     ( (<$>) )
 import Control.Arrow           ( first, second )
 import Control.Monad           ( (>>=), (>>), return, fmap, forM_, fail )
@@ -50,8 +50,11 @@ import Prelude                 ( fromInteger )
 import System.IO               ( IO )
 import System.Timeout          ( timeout )
 
--- from base-unicode-symbols
+-- from base-unicode-symbols:
 import Data.Function.Unicode   ( (∘) )
+
+-- from concurrent-extra:
+import Utils ( purelyModifyMVar )
 
 
 -------------------------------------------------------------------------------
@@ -66,30 +69,30 @@ new = Broadcast <$> newMVar (Nothing, [])
 
 read ∷ Broadcast α → IO α
 read (Broadcast mv) = block $ do
-  t@(st, _) ← takeMVar mv
-  case st of
+  t@(mx, ls) ← takeMVar mv
+  case mx of
+    Nothing → do l ← newEmptyMVar
+                 putMVar mv (mx, l:ls)
+                 takeMVar l
     Just x  → do putMVar mv t
                  return x
-    Nothing → do l ← newEmptyMVar
-                 putMVar mv $ second (l:) t
-                 takeMVar l
 
 tryRead ∷ Broadcast α → IO (Maybe α)
 tryRead = fmap fst ∘ readMVar ∘ unBroadcast
 
 readTimeout ∷ Broadcast α → Int → IO (Maybe α)
 readTimeout (Broadcast mv) time = block $ do
-  t@(st, _) ← takeMVar mv
-  case st of
-    Just x  → do putMVar mv t
-                 return $ Just x
+  t@(mx, ls) ← takeMVar mv
+  case mx of
     Nothing → do l ← newEmptyMVar
-                 putMVar mv $ second (l:) t
-                 r ← unblock $ timeout (max time 0) (takeMVar l)
-                 case r of
-                   Just x → return $ Just x
-                   Nothing → do modifyMVar_ mv $ return ∘ second (delete l)
-                                return Nothing
+                 putMVar mv (mx, l:ls)
+                 my ← unblock $ timeout (max time 0) (takeMVar l)
+                 case my of
+                   Nothing → do purelyModifyMVar mv $ second $ delete l
+                                return my
+                   Just _  → return my
+    Just _  → do putMVar mv t
+                 return mx
 
 write ∷ Broadcast α → α → IO ()
 write (Broadcast mv) x =
@@ -98,7 +101,9 @@ write (Broadcast mv) x =
       return (Just x, [])
 
 clear ∷ Broadcast α → IO ()
-clear (Broadcast mv) = modifyMVar_ mv $ return ∘ first (const Nothing)
+clear (Broadcast mv) = purelyModifyMVar mv $ first $ const Nothing
 
 
 -- The End ---------------------------------------------------------------------
+
+

@@ -1,4 +1,8 @@
-{-# LANGUAGE BangPatterns, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE BangPatterns
+           , DeriveDataTypeable
+           , NoImplicitPrelude
+           , UnicodeSyntax
+  #-}
 
 --------------------------------------------------------------------------------
 -- |
@@ -101,18 +105,18 @@ newAcquired = do myTID ← myThreadId
 acquire ∷ RLock → IO ()
 acquire (RLock mv) = do
   myTID ← myThreadId
-  block $ let go = do t@(mb, lock) ← takeMVar mv
-                      case mb of
-                        Nothing         → do Lock.acquire lock
-                                             putMVar mv (Just (myTID, 1), lock)
-                        Just (tid, n)
-                          | myTID ≡ tid → let !sn = succ n
-                                          in putMVar mv (Just (tid, sn), lock)
-                          | otherwise   → do putMVar mv t
-                                             Lock.acquire lock
-                                             Lock.release lock
-                                             go
-          in go
+  block $ let acq = do t@(mb, lock) ← takeMVar mv
+                       case mb of
+                         Nothing         → do Lock.acquire lock
+                                              putMVar mv (Just (myTID, 1), lock)
+                         Just (tid, n)
+                           | myTID ≡ tid → let !sn = succ n
+                                           in putMVar mv (Just (tid, sn), lock)
+                           | otherwise   → do putMVar mv t
+                                              Lock.acquire lock
+                                              Lock.release lock
+                                              acq
+          in acq
 
 tryAcquire ∷ RLock → IO Bool
 tryAcquire (RLock mv) = do
@@ -155,7 +159,7 @@ tryWith ∷ RLock → IO α → IO (Maybe α)
 tryWith l a = block $ do
   acquired ← tryAcquire l
   if acquired
-    then fmap Just $ a `finally` release l
+    then Just <$> a `finally` release l
     else return Nothing
 
 recursionLevel ∷ RLock → IO Integer
