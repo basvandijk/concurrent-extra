@@ -17,11 +17,16 @@
 
 module Control.Concurrent.Broadcast
   ( Broadcast
+
   , new
+  , newWritten
+
   , read
   , tryRead
   , readTimeout
+
   , write
+
   , clear
   ) where
 
@@ -66,6 +71,9 @@ newtype Broadcast α = Broadcast {unBroadcast ∷ MVar (Maybe α, [MVar α])}
 
 new ∷ IO (Broadcast α)
 new = Broadcast <$> newMVar (Nothing, [])
+
+newWritten ∷ α → IO (Broadcast α)
+newWritten x = Broadcast <$> newMVar (Just x, [])
 
 read ∷ Broadcast α → IO α
 read (Broadcast mv) = block $ do

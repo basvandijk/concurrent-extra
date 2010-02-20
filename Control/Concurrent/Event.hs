@@ -33,6 +33,8 @@
 module Control.Concurrent.Event
   ( Event
   , new
+  , newSetted
+
   , wait
   , waitTimeout
   , set
@@ -61,7 +63,7 @@ import Data.Function.Unicode   ( (∘) )
 -- from concurrent-extra
 import           Control.Concurrent.Broadcast ( Broadcast )
 import qualified Control.Concurrent.Broadcast as Broadcast
-    ( new, read, tryRead, readTimeout, write, clear )
+    ( new, newWritten, read, tryRead, readTimeout, write, clear )
 
 
 -------------------------------------------------------------------------------
@@ -75,13 +77,18 @@ newtype Event = Event {evBroadcast ∷ Broadcast ()} deriving (Eq, Typeable)
 new ∷ IO Event
 new = Event <$> Broadcast.new
 
--- | Block until the event is 'set'.
---
--- If the state of the event is already 'Set' this function will return
--- immediately. Otherwise it will block until another thread calls 'set'.
---
--- You can also stop a thread that is waiting for an event by throwing an
--- asynchronous exception.
+-- | Create an event in the \"Set\" state.
+newSetted ∷ IO Event
+newSetted = Event <$> Broadcast.newWritten ()
+
+{-| Block until the event is 'set'.
+
+If the state of the event is already \"Set\" this function will return
+immediately. Otherwise it will block until another thread calls 'set'.
+
+You can also stop a thread that is waiting for an event by throwing an
+asynchronous exception.
+-}
 wait ∷ Event → IO ()
 wait = Broadcast.read ∘ evBroadcast
 

@@ -35,8 +35,12 @@
 
 module Control.Concurrent.ReadWriteLock
   ( RWLock
+
     -- *Creating Read-Write Locks
   , new
+  , newAcquiredRead
+  , newAcquiredWrite
+
     -- *Read access
     -- **Blocking
   , acquireRead
@@ -116,7 +120,25 @@ data State = Free | Read Int | Write
 access can be acquired without blocking.
 -}
 new ∷ IO RWLock
-new = liftM3 RWLock (newMVar Free) Lock.new Lock.new
+new = liftM3 RWLock (newMVar Free)
+                    Lock.new
+                    Lock.new
+
+{-| Create a new 'RWLock' in the \"Read\" state; only read can be acquired
+without blocking.
+-}
+newAcquiredRead ∷ IO RWLock
+newAcquiredRead = liftM3 RWLock (newMVar $ Read 1)
+                                Lock.newAcquired
+                                Lock.new
+
+{-| Create a new 'RWLock' in the \"Write\" state; either acquiring read or write
+will block.
+-}
+newAcquiredWrite ∷ IO RWLock
+newAcquiredWrite = liftM3 RWLock (newMVar Write)
+                                 Lock.new
+                                 Lock.newAcquired
 
 {-| Acquire the read lock.
 
