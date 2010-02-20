@@ -11,6 +11,8 @@
 -- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>
 --            , Roel van Dijk <vandijk.roel@gmail.com>
 --
+-- Inspired by: <http://hackage.haskell.org/package/threadmanager>
+--
 -------------------------------------------------------------------------------
 
 module Control.Concurrent.Thread

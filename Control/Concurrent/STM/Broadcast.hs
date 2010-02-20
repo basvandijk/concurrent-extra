@@ -17,10 +17,15 @@
 
 module Control.Concurrent.STM.Broadcast
   ( Broadcast
+
   , new
+  , newWritten
+
   , read
   , tryRead
+
   , write
+
   , clear
   ) where
 
@@ -31,7 +36,7 @@ module Control.Concurrent.STM.Broadcast
 
 -- from base
 import Control.Applicative         ( (<$>) )
-import Control.Monad               ( return, (=<<) )
+import Control.Monad               ( return, (=<<), fmap )
 import Control.Concurrent.STM      ( STM, retry )
 import Control.Concurrent.STM.TVar ( TVar, newTVar, readTVar, writeTVar )
 import Data.Eq                     ( Eq )
@@ -51,6 +56,9 @@ newtype Broadcast α = Broadcast {unBroadcast ∷ TVar (Maybe α)}
 
 new ∷ STM (Broadcast α)
 new = Broadcast <$> newTVar Nothing
+
+newWritten ∷ α → STM (Broadcast α)
+newWritten = fmap Broadcast ∘ newTVar ∘ Just
 
 read ∷ Broadcast α → STM α
 read = (maybe retry return =<<) ∘ readTVar ∘ unBroadcast

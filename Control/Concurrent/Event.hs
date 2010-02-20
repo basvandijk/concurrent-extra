@@ -34,7 +34,7 @@ module Control.Concurrent.Event
   ( Event
 
   , new
-  , newSetted
+  , newSet
 
   , wait
   , waitTimeout
@@ -81,8 +81,8 @@ new ∷ IO Event
 new = Event <$> Broadcast.new
 
 -- | Create an event in the \"Set\" state.
-newSetted ∷ IO Event
-newSetted = Event <$> Broadcast.newWritten ()
+newSet ∷ IO Event
+newSet = Event <$> Broadcast.newWritten ()
 
 {-| Block until the event is 'set'.
 
