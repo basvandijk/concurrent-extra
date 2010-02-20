@@ -11,9 +11,9 @@
 -- An Event is a simple mechanism for communication between threads: one thread
 -- signals an event and other threads wait for it.
 --
--- Each event has an internal 'State' which is either 'Set' or 'Cleared'. This
+-- Each event has an internal state which is either \"Set\" or \"Cleared\". This
 -- state can be changed with the corresponding functions 'set' and 'clear'. The
--- 'wait' function blocks until the state is 'Set'. An important property of
+-- 'wait' function blocks until the state is \"Set\". An important property of
 -- setting an event is that /all/ threads waiting for it are woken.
 --
 -- It was inspired by the Python @Event@ object. See:
@@ -32,13 +32,16 @@
 
 module Control.Concurrent.Event
   ( Event
+
   , new
   , newSetted
 
   , wait
   , waitTimeout
+
   , set
   , clear
+
   , isSet
   ) where
 
@@ -50,7 +53,7 @@ module Control.Concurrent.Event
 -- from base
 import Control.Applicative     ( (<$>) )
 import Control.Monad           ( fmap  )
-import Data.Bool               ( Bool )
+import Data.Bool               ( Bool(..) )
 import Data.Eq                 ( Eq )
 import Data.Int                ( Int )
 import Data.Maybe              ( isJust )
@@ -70,10 +73,10 @@ import qualified Control.Concurrent.Broadcast as Broadcast
 -- Events
 -------------------------------------------------------------------------------
 
--- | An event is in one of two possible states: 'Set' or 'Cleared'.
+-- | An event is in one of two possible states: \"Set\" or \"Cleared\".
 newtype Event = Event {evBroadcast ∷ Broadcast ()} deriving (Eq, Typeable)
 
--- | Create an event. The initial state is 'Cleared'.
+-- | Create an event in the \"Cleared\" state.
 new ∷ IO Event
 new = Event <$> Broadcast.new
 
@@ -92,31 +95,40 @@ asynchronous exception.
 wait ∷ Event → IO ()
 wait = Broadcast.read ∘ evBroadcast
 
--- | Block until the event is 'set' or until a timer expires.
---
--- Like 'wait' but with a timeout. A return value of 'False' indicates a timeout
--- occurred.
---
--- The timeout is specified in microseconds. A timeout of 0 &#x3bc;s will cause
--- the function to return 'False' without blocking in case the event state is
--- 'Cleared'. Negative timeouts are treated the same as a timeout of 0
--- &#x3bc;s. The maximum timeout is constrained by the range of the 'Int'
--- type. The Haskell standard guarantees an upper bound of at least @2^29-1@
--- giving a maximum timeout of at least @(2^29-1) / 10^6@ = ~536 seconds.
+{-| Block until the event is 'set' or until a timer expires.
+
+Like 'wait' but with a timeout. A return value of 'False' indicates a timeout
+occurred.
+
+The timeout is specified in microseconds. A timeout of 0 &#x3bc;s will cause the
+function to return 'False' without blocking in case the event state is
+\"Cleared\". Negative timeouts are treated the same as a timeout of 0
+&#x3bc;s. The maximum timeout is constrained by the range of the 'Int' type. The
+Haskell standard guarantees an upper bound of at least @2^29-1@ giving a maximum
+timeout of at least @(2^29-1) / 10^6@ = ~536 seconds.
+-}
 waitTimeout ∷ Event → Int → IO Bool
 waitTimeout ev time = isJust <$> Broadcast.readTimeout (evBroadcast ev) time
 
--- | Changes the state of the event to 'Set'. All threads that where waiting for
--- this event are woken. Threads that 'wait' after the state is changed to 'Set'
--- will not block at all.
+{-| Changes the state of the event to \"Set\". All threads that where waiting
+for this event are woken. Threads that 'wait' after the state is changed to
+\"Set\" will not block at all.
+-}
 set ∷ Event → IO ()
 set ev = Broadcast.write (evBroadcast ev) ()
 
--- | Changes the state of the event to 'Cleared'. Threads that 'wait' after the
--- state is changed to 'Cleared' will block until the state is changed to 'Set'.
+{-| Changes the state of the event to \"Cleared\". Threads that 'wait' after the
+state is changed to \"Cleared\" will block until the state is changed to \"Set\".
+-}
 clear ∷ Event → IO ()
 clear = Broadcast.clear ∘ evBroadcast
 
+{-| Returns 'True' if the state of the event is \"Set\" and 'False' if the state
+is \"Cleared\".
+
+Notice that this is only a snapshot of the state. By the time a program reacts
+on its result it may already be out of date.
+-}
 isSet ∷ Event → IO Bool
 isSet = fmap isJust ∘ Broadcast.tryRead ∘ evBroadcast
 

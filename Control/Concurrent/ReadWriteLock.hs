@@ -42,18 +42,23 @@ module Control.Concurrent.ReadWriteLock
   , newAcquiredWrite
 
     -- *Read access
+
     -- **Blocking
   , acquireRead
   , releaseRead
   , withRead
+
     -- **Non-blocking
   , tryAcquireRead
   , tryWithRead
+
     -- *Write access
+
     -- **Blocking
   , acquireWrite
   , releaseWrite
   , withWrite
+
     -- **Non-blocking
   , tryAcquireWrite
   , tryWithWrite
@@ -116,8 +121,8 @@ data RWLock = RWLock { state     ∷ MVar State
 -- | Internal state of the 'RWLock'.
 data State = Free | Read Int | Write
 
-{-| Create a new 'RWLock'. The initial state is \"free\"; either read or write
-access can be acquired without blocking.
+{-| Create a new 'RWLock' in the \"Free\" state; either read or write access can
+be acquired without blocking.
 -}
 new ∷ IO RWLock
 new = liftM3 RWLock (newMVar Free)
@@ -143,7 +148,7 @@ newAcquiredWrite = liftM3 RWLock (newMVar Write)
 {-| Acquire the read lock.
 
 Blocks if another thread has acquired write access. If @acquireRead@ terminates
-without throwing an exception the state of the 'RWLock' will be \"read\".
+without throwing an exception the state of the 'RWLock' will be \"Read\".
 
 Implementation note: Throws an exception when more than (maxBound :: Int)
 simultaneous threads acquire the read lock. But that is unlikely.
@@ -165,7 +170,7 @@ acquireRead (RWLock {state, readLock, writeLock}) = block $ do
 {-| Try to acquire the read lock; non blocking.
 
 Like 'acquireRead', but doesn't block. Returns 'True' if the resulting state is
-\"read\", 'False' otherwise.
+\"Read\", 'False' otherwise.
 -}
 tryAcquireRead ∷ RWLock → IO Bool
 tryAcquireRead (RWLock {state, readLock}) = block $ do
@@ -182,10 +187,10 @@ tryAcquireRead (RWLock {state, readLock}) = block $ do
 {-| Release the read lock.
 
 If the calling thread was the last one to relinquish read access the state will
-revert to \"free\".
+revert to \"Free\".
 
 It is an error to release read access to an 'RWLock' which is not in the
-\"read\" state.
+\"Read\" state.
 -}
 releaseRead ∷ RWLock → IO ()
 releaseRead (RWLock {state, readLock}) = block $ do
@@ -222,7 +227,7 @@ tryWithRead l a = block $ do
 
 Blocks if another thread has acquired either read or write access. If
 @acquireWrite@ terminates without throwing an exception the state of the
-'RWLock' will be \"write\".
+'RWLock' will be \"Write\".
 -}
 acquireWrite ∷ RWLock → IO ()
 acquireWrite (RWLock {state, readLock, writeLock}) = block $ do
@@ -242,7 +247,7 @@ acquireWrite (RWLock {state, readLock, writeLock}) = block $ do
 {-| Try to acquire the write lock; non blocking.
 
 Like 'acquireWrite', but doesn't block. Returns 'True' if the resulting state is
-\"write\", 'False' otherwise.
+\"Write\", 'False' otherwise.
 -}
 tryAcquireWrite ∷ RWLock → IO Bool
 tryAcquireWrite (RWLock {state, writeLock}) = block $ do
@@ -261,10 +266,10 @@ tryAcquireWrite (RWLock {state, writeLock}) = block $ do
 {-| Release the write lock.
 
 If @releaseWrite@ terminates without throwing an exception the state will be
-\"free\".
+\"Free\".
 
 It is an error to release write access to an 'RWLock' which is not in the
-\"write\" state.
+\"Write\" state.
 -}
 releaseWrite ∷ RWLock → IO ()
 releaseWrite (RWLock {state, writeLock}) = block $ do
