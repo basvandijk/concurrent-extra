@@ -108,9 +108,8 @@ the actual forking.
 fork ∷ (IO () → IO Conc.ThreadId) → IO () → IO ThreadId
 fork f a = do
   stp ← Broadcast.new
-  tid ← f $ block
-          $ catch (unblock a >> Broadcast.write stp Nothing)
-                  (Broadcast.write stp ∘ Just)
+  tid ← block $ f $ catch (unblock a >> Broadcast.write stp Nothing)
+                          (Broadcast.write stp ∘ Just)
   return $ ThreadId stp tid
 
 {-| 
