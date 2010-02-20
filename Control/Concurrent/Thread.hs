@@ -15,8 +15,8 @@
 --
 -- Inspired by: <http://hackage.haskell.org/package/threadmanager>
 --
--- This module re-implements several functions from Control.Concurrent. Avoid
--- ambiguities by importing one or both qualified. You can safely import this
+-- This module re-implements several functions from @Control.Concurrent@. Avoid
+-- ambiguities by importing one or both qualified. We suggest importing this
 -- module like:
 --
 -- @
@@ -61,7 +61,7 @@ import Data.Typeable       ( Typeable )
 import System.IO           ( IO )
 import Text.Show           ( Show, show )
 
-import qualified Control.Concurrent as Conc 
+import qualified Control.Concurrent as Conc
     ( ThreadId, forkIO, forkOS, throwTo )
 
 -- from base-unicode-symbols:
@@ -89,7 +89,7 @@ program.
 
 Note: This is a wrapper around 'Conc.ThreadId'.
 -}
-data ThreadId = ThreadId 
+data ThreadId = ThreadId
     { stopped   ∷ Broadcast (Maybe SomeException)
       -- | Extract the underlying 'Conc.ThreadId'.
     , threadId  ∷ Conc.ThreadId
@@ -101,9 +101,9 @@ instance Ord ThreadId where
 instance Show ThreadId where
     show = show ∘ threadId
 
-{-| 
-Generalisation of 'forkIO' and 'forkOS'. Parametrised by the function which does
-the actual forking.
+{-|
+Internally used function which generalises 'forkIO' and 'forkOS' by
+parameterizing it by the function which does the actual forking.
 -}
 fork ∷ (IO () → IO Conc.ThreadId) → IO () → IO ThreadId
 fork f a = do
@@ -112,9 +112,9 @@ fork f a = do
                           (Broadcast.write stp ∘ Just)
   return $ ThreadId stp tid
 
-{-| 
-Sparks off a new thread to run the 'IO' computation passed as the first
-argument, and returns the 'ThreadId' of the newly created thread.
+{-|
+Sparks off a new thread to run the given 'IO' computation and returns the
+'ThreadId' of the newly created thread.
 
 The new thread will be a lightweight thread; if you want to use a foreign
 library that uses thread-local storage, use 'forkOS' instead.
@@ -123,52 +123,53 @@ GHC note: the new thread inherits the blocked state of the parent (see
 'Control.Exception.block').
 
 The newly created thread has an exception handler that discards the exceptions
-BlockedOnDeadMVar, BlockedIndefinitely, and ThreadKilled, and passes all other
-exceptions to the uncaught exception handler (see setUncaughtExceptionHandler).
+@BlockedOnDeadMVar@, @BlockedIndefinitely@, and @ThreadKilled@, and passes all
+other exceptions to the uncaught exception handler (see
+@setUncaughtExceptionHandler@).
 -}
 forkIO ∷ IO () → IO ThreadId
 forkIO = fork Conc.forkIO
 
-{-| 
-Like 'forkIO', this sparks off a new thread to run the 'IO' computation passed
-as the first argument, and returns the 'ThreadId' of the newly created thread.
+{-|
+Like 'forkIO', this sparks off a new thread to run the given 'IO' computation
+and returns the 'ThreadId' of the newly created thread.
 
-However, 'forkOS' creates a /bound/ thread, which is necessary if you need to
-call foreign (non-Haskell) libraries that make use of thread-local state, such
-as OpenGL (see 'Control.Concurrent').
+Unlike 'forkIO', 'forkOS' creates a /bound/ thread, which is necessary if you
+need to call foreign (non-Haskell) libraries that make use of thread-local
+state, such as OpenGL (see 'Control.Concurrent').
 
 Using 'forkOS' instead of 'forkIO' makes no difference at all to the scheduling
 behaviour of the Haskell runtime system. It is a common misconception that you
 need to use 'forkOS' instead of 'forkIO' to avoid blocking all the Haskell
 threads when making a foreign call; this isn't the case. To allow foreign calls
 to be made without blocking all the Haskell threads (with GHC), it is only
-necessary to use the -threaded option when linking your program, and to make
+necessary to use the @-threaded@ option when linking your program, and to make
 sure the foreign import is not marked @unsafe@.
 -}
 forkOS ∷ IO () → IO ThreadId
 forkOS = fork Conc.forkOS
 
-{-| 
+{-|
 Block until the given thread is terminated.
 
-Returns 'Just' the exception that caused the thread to terminate, 'Nothing' if
-the thread finished normally.
+Returns 'Nothing' if the thread terminated normally or 'Just' @e@ if the
+exception @e@ was thrown in the thread and wasn't catched.
 -}
 wait ∷ ThreadId → IO (Maybe SomeException)
 wait = Broadcast.read ∘ stopped
 
-{-| 
-Block until the given thread is terminated or until a timer expires. 
+{-|
+Block until the given thread is terminated or until a timer expires.
 
-Returns 'Nothing' if a timeout occurred and returns 'Just' the result 'wait'
-would return when the thread finished within the specified time.
+Returns 'Nothing' if a timeout occurred or 'Just' the result 'wait' would return
+when the thread finished within the specified time.
 
 The timeout is specified in microseconds.
 -}
 waitTimeout ∷ ThreadId → Int → IO (Maybe (Maybe SomeException))
 waitTimeout = Broadcast.readTimeout ∘ stopped
 
-{-| 
+{-|
 Returns 'True' if the given thread is currently running.
 
 Notice that this observation is only a snapshot of thread's state. By the time a
@@ -221,7 +222,7 @@ completed. This is the case regardless of whether the call is inside a 'block'
 or not.
 
 Important note: the behaviour of 'throwTo' differs from that described in the
-paper "Asynchronous exceptions in Haskell"
+paper \"Asynchronous exceptions in Haskell\"
 (<http://research.microsoft.com/~simonpj/Papers/asynch-exns.htm>). In the paper,
 'throwTo' is non-blocking; but the library implementation adopts a more
 synchronous design in which 'throwTo' does not return until the exception is
@@ -237,7 +238,7 @@ be delivered at the first possible opportunity. In particular, a thread may
 throwTo ∷ Exception e ⇒ ThreadId → e → IO ()
 throwTo = Conc.throwTo ∘ threadId
 
-{-| 
+{-|
 Like 'throwTo', but with a timeout. 'throwToTimeout' blocks until the exception
 has been raised in the target thread or until a timer expires.
 
