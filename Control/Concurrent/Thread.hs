@@ -36,7 +36,6 @@ module Control.Concurrent.Thread
   , killThread
   , killThreadTimeout
   , throwTo
-  , throwToTimeout
   ) where
 
 
@@ -59,6 +58,7 @@ import Data.Maybe          ( Maybe(Nothing, Just), isNothing, isJust )
 import Data.Ord            ( Ord, compare )
 import Data.Typeable       ( Typeable )
 import System.IO           ( IO )
+
 import Text.Show           ( Show, show )
 
 import qualified Control.Concurrent as Conc
@@ -237,15 +237,6 @@ be delivered at the first possible opportunity. In particular, a thread may
 -}
 throwTo ∷ Exception e ⇒ ThreadId → e → IO ()
 throwTo = Conc.throwTo ∘ threadId
-
-{-|
-Like 'throwTo', but with a timeout. 'throwToTimeout' blocks until the exception
-has been raised in the target thread or until a timer expires.
-
-The timeout is specified in microseconds.
--}
-throwToTimeout ∷ Exception e ⇒ ThreadId → e → Int → IO Bool
-throwToTimeout t e time = throwTo t e >> isJust <$> waitTimeout t time
 
 
 -- The End ---------------------------------------------------------------------

@@ -32,16 +32,12 @@
 
 module Control.Concurrent.Event
   ( Event
-
   , new
   , newSet
-
   , wait
   , waitTimeout
-
   , set
   , clear
-
   , isSet
   ) where
 
@@ -97,7 +93,7 @@ wait = Broadcast.read ∘ evBroadcast
 
 {-| Block until the event is 'set' or until a timer expires.
 
-Like 'wait' but with a timeout. A return value of 'False' indicates a timeout
+Like 'wait', but with a timeout. A return value of 'False' indicates a timeout
 occurred.
 
 The timeout is specified in microseconds. A timeout of 0 &#x3bc;s will cause the

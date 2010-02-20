@@ -36,21 +36,16 @@
 
 module Control.Concurrent.RLock
     ( RLock
-
       -- * Creating reentrant locks
     , new
     , newAcquired
-
       -- * Locking and unlocking
     , acquire
     , tryAcquire
-
     , release
-
       -- * Convenience functions
     , with
     , tryWith
-
       -- * Querying reentrant locks
     , recursionLevel
     ) where

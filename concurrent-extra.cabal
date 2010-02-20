@@ -13,55 +13,34 @@ license-file:  LICENSE
 category:      Concurrency
 synopsis:      Extra concurrency primitives
 description:
-
   The @concurrent-extra@ package offers among other things the
   following selection of synchronization primitives:
-
   .
-
   * @Lock@: Enforce exclusive access to a resource. Also known as a
     binary semaphore or mutex.
-
   .
-
   * @RLock@: A lock which can be acquired multiple times by the same
     thread. Also known as a reentrant mutex.
-
   .
-
   * @Broadcast@: Wake multiple threads by broadcasting a value.
-
   .
-
   * @Event@: Wake multiple threads by signaling an event.
-
   .
-
   * @ReadWriteLock@: Multiple-reader, single-writer locks. Used to
     protect shared resources which may be concurrently read, but only
     sequentially written.
-
   .
-
   * @ReadWriteVar@: Concurrent read, sequential write variables.
-
   .
-
   The package also provides @STM@ versions of @Broadcast@ and @Event@.
-
   .
-
   Besides these synchronization primitives the package also provides
   other concurrency mechanisms like: a @Thread@ on which you can wait
   for termination.
-
   .
-
   Please consult the API documentation of the individual modules for
   more detailed information.
-
   .
-
   This package was inspired by the concurrency libraries of Java and
   Python.
 

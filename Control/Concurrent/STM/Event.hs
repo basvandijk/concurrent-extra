@@ -32,15 +32,11 @@
 
 module Control.Concurrent.STM.Event
   ( Event
-
   , new
   , newSet
-
   , wait
-
   , set
   , clear
-
   , isSet
   ) where
 

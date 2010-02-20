@@ -31,21 +31,16 @@
 
 module Control.Concurrent.Lock
     ( Lock
-
       -- * Creating locks
     , new
     , newAcquired
-
       -- * Locking and unlocking
     , acquire
     , tryAcquire
-
     , release
-
       -- * Convenience functions
     , with
     , tryWith
-
       -- * Querying locks
     , locked
     ) where

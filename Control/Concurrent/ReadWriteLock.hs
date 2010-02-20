@@ -35,30 +35,23 @@
 
 module Control.Concurrent.ReadWriteLock
   ( RWLock
-
     -- *Creating Read-Write Locks
   , new
   , newAcquiredRead
   , newAcquiredWrite
-
     -- *Read access
-
     -- **Blocking
   , acquireRead
   , releaseRead
   , withRead
-
     -- **Non-blocking
   , tryAcquireRead
   , tryWithRead
-
     -- *Write access
-
     -- **Blocking
   , acquireWrite
   , releaseWrite
   , withWrite
-
     -- **Non-blocking
   , tryAcquireWrite
   , tryWithWrite

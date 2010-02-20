@@ -47,12 +47,9 @@
 
 module Control.Concurrent.ReadWriteVar
   ( RWVar
-    -- *Creating Read-Write Variables
   , new
-    -- *Reading
   , with
   , tryWith
-    -- *Writing
   , modify_
   , modify
   , tryModify_

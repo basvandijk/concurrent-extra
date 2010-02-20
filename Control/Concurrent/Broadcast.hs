@@ -43,7 +43,7 @@ module Control.Concurrent.Broadcast
 
 -- from base:
 import Control.Applicative     ( (<$>) )
-import Control.Arrow           ( first, second )
+import Control.Arrow           ( first )
 import Control.Monad           ( (>>=), (>>), return, fmap, forM_, fail )
 import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , takeMVar, putMVar, readMVar, modifyMVar_
@@ -52,12 +52,12 @@ import Control.Exception       ( block, unblock )
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($), const )
 import Data.Int                ( Int )
-import Data.List               ( delete )
+import Data.List               ( delete, length )
 import Data.Maybe              ( Maybe(Nothing, Just) )
 import Data.Ord                ( Ord, max )
 import Data.Tuple              ( fst )
 import Data.Typeable           ( Typeable )
-import Prelude                 ( fromInteger )
+import Prelude                 ( fromInteger, seq )
 import System.IO               ( IO )
 import System.Timeout          ( timeout )
 
@@ -130,7 +130,9 @@ readTimeout (Broadcast mv) time = block $ do
                  putMVar mv (mx, l:ls)
                  my ← unblock $ timeout (max time 0) (takeMVar l)
                  case my of
-                   Nothing → do purelyModifyMVar mv $ second $ delete l
+                   Nothing → do (mx', ls') ← takeMVar mv
+                                let ls'' = delete l ls'
+                                length ls'' `seq` putMVar mv (mx', ls'')
                                 return my
                    Just _  → return my
     Just _  → do putMVar mv t
@@ -153,5 +155,3 @@ clear (Broadcast mv) = purelyModifyMVar mv $ first $ const Nothing
 
 
 -- The End ---------------------------------------------------------------------
-
-
