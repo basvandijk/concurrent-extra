@@ -155,7 +155,7 @@ forkOS = fork Conc.forkOS
 Block until the given thread is terminated.
 
 Returns 'Nothing' if the thread terminated normally or 'Just' @e@ if the
-exception @e@ was thrown in the thread and wasn't catched.
+exception @e@ was thrown in the thread and wasn't caught.
 -}
 wait ∷ ThreadId → IO (Maybe SomeException)
 wait = Broadcast.read ∘ stopped

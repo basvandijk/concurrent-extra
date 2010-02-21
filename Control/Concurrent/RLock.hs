@@ -12,7 +12,7 @@
 -- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>
 --            , Roel van Dijk <vandijk.roel@gmail.com>
 --
--- This module provides the 'RLock' synchronization mechanism. It was inspired
+-- This module provides the 'RLock' synchronisation mechanism. It was inspired
 -- by the Python @RLock@ and Java @ReentrantLock@ objects and should behave in a
 -- similar way. See:
 --
@@ -23,7 +23,7 @@
 -- <http://java.sun.com/javase/7/docs/api/java/util/concurrent/locks/ReentrantLock.html>
 --
 -- All functions are /exception safe/. Throwing asynchronous exceptions will not
--- compromise the internal state of a 'RLock'.
+-- compromise the internal state of an 'RLock'.
 --
 -- This module is intended to be imported qualified. We suggest importing it like:
 --
@@ -72,12 +72,12 @@ import Data.Typeable           ( Typeable )
 import Prelude                 ( Integer, fromInteger, succ, pred, error )
 import System.IO               ( IO )
 
--- from base-unicode-symbols
+-- from base-unicode-symbols:
 import Data.Eq.Unicode         ( (≡) )
 import Data.Function.Unicode   ( (∘) )
 import Data.Monoid.Unicode     ( (⊕) )
 
--- from ourselves:
+-- from concurrent-extra:
 import           Control.Concurrent.Lock ( Lock )
 import qualified Control.Concurrent.Lock as Lock
     ( new, newAcquired, acquire, release, wait )
@@ -87,8 +87,8 @@ import qualified Control.Concurrent.Lock as Lock
 -- Reentrant locks
 --------------------------------------------------------------------------------
 
-{-| A reentrant lock is in one of two states: \"Locked\" or \"Unlocked\". When
-the lock is in the \"Locked\" state it has two additional properties:
+{-| A reentrant lock is in one of two states: \"locked\" or \"unlocked\". When
+the lock is in the \"locked\" state it has two additional properties:
 
 * Its /owner/: the thread that acquired the lock.
 
@@ -99,39 +99,42 @@ newtype RLock = RLock {un ∷ MVar (State, Lock)}
 
 {-| The state of an 'RLock'.
 
-* 'Nothing' indicates an \"Unlocked\" state.
+* 'Nothing' indicates an \"unlocked\" state.
 
-* @'Just' (tid, n)@ indicates a \"Locked\" state where the thread identified by @tid@
+* @'Just' (tid, n)@ indicates a \"locked\" state where the thread identified by @tid@
 acquired the lock @n@ times.
 -}
 type State = Maybe (ThreadId, Integer)
 
--- | Create a reentrant lock in the \"Unlocked\" state.
+-- | Create a reentrant lock in the \"unlocked\" state.
 new ∷ IO RLock
 new = do lock ← Lock.new
          RLock <$> newMVar (Nothing, lock)
 
--- | Create a reentrant lock in the \"Locked\" state (with the current thread as
--- owner and an acquired count of 1).
+{-| 
+Create a reentrant lock in the \"locked\" state (with the current thread as
+owner and an acquired count of 1).
+-}
 newAcquired ∷ IO RLock
 newAcquired = do myTID ← myThreadId
                  lock ← Lock.newAcquired
                  RLock <$> newMVar (Just (myTID, 1), lock)
 
-{-| @acquire@ behaves as follows:
+{-| 
+Acquires the 'RLock'. Blocks if another thread has acquired the 'RLock'.
 
-* When the state is \"Unlocked\", @acquire@ changes the state to \"Locked\"
-(with the current thread as owner and an acquired count of 1) and returns
-immediately.
+@acquire@ behaves as follows:
 
-* When the state is \"Locked\" and the current thread owns the lock, @acquire@
-keeps the state to \"Locked\" but increments the acquired count and returns
-immediately.
+* When the state is \"unlocked\", @acquire@ changes the state to \"locked\"
+with the current thread as owner and an acquired count of 1.
 
-* When the state is \"Locked\" and the current thread does not own the lock,
-@acquire@ /blocks/ until the owner releases the lock. @acquire@ then changes the
-state to \"Locked\" (with the current thread as owner and an acquired count of
-1).
+* When the state is \"locked\" and the current thread owns the lock @acquire@
+only increments the acquired count.
+
+* When the state is \"locked\" and the current thread does not own the lock
+@acquire@ /blocks/ until the owner releases the lock. If the thread that called
+@acquire@ is woken upon release of the lock it will take ownership and change
+the state to \"locked\" with an acquired count of 1.
 
 There are two further important properties of @acquire@:
 
@@ -139,10 +142,10 @@ There are two further important properties of @acquire@:
 @acquire@, and the lock is released, only one thread will be woken up. The
 runtime guarantees that the woken thread completes its @acquire@ operation.
 
-* When multiple threads are blocked on @acquire@, they are woken up in FIFO
+* When multiple threads are blocked on @acquire@ they are woken up in FIFO
 order. This is useful for providing fairness properties of abstractions built
 using locks. (Note that this differs from the Python implementation where the
-wake-up order is undefined)
+wake-up order is undefined.)
 -}
 acquire ∷ RLock → IO ()
 acquire (RLock mv) = do
@@ -159,14 +162,15 @@ acquire (RLock mv) = do
                                               acq
           in acq
 
-{-| A non-blocking 'acquire'.
+{-| 
+A non-blocking 'acquire'.
 
-* When the state is \"Unlocked\", @tryAcquire@ changes the state to \"Locked\"
+* When the state is \"unlocked\" @tryAcquire@ changes the state to \"locked\"
 (with the current thread as owner and an acquired count of 1) and returns
-immediately with 'True'.
+'True'.
 
-* When the state is \"Locked\", @tryAcquire@ leaves the state unchanged and
-returns immediately with 'False'.
+* When the state is \"locked\" @tryAcquire@ leaves the state unchanged and
+returns 'False'.
 -}
 tryAcquire ∷ RLock → IO Bool
 tryAcquire (RLock mv) = do
@@ -186,9 +190,9 @@ tryAcquire (RLock mv) = do
                            return False
 
 {-| @release@ decrements the acquired count. When a lock is released with an
-acquired count of 1 its state is changed to \"Unlocked\".
+acquired count of 1 its state is changed to \"unlocked\".
 
-Note that it is both an error to release a lock in the \"Unlocked\" state and to
+Note that it is both an error to release a lock in the \"unlocked\" state and to
 release a lock that is not owned by the current thread.
 
 If there are any threads blocked on 'acquire' the thread that first called
@@ -220,8 +224,9 @@ Note that: @with = 'liftA2' 'bracket_' 'acquire' 'release'@.
 with ∷ RLock → IO α → IO α
 with = liftA2 bracket_ acquire release
 
-{-| A non-blocking 'with'. @tryWith@ is a convenience function which first tries
-to acquire the lock. If that fails, 'Nothing' is returned. If it succeeds, the
+{-| 
+A non-blocking 'with'. @tryWith@ is a convenience function which first tries to
+acquire the lock. If that fails, 'Nothing' is returned. If it succeeds, the
 computation is performed. When the computation terminates, whether normally or
 by raising an exception, the lock is released and 'Just' the result of the
 computation is returned.
@@ -234,10 +239,10 @@ tryWith l a = block $ do
     else return Nothing
 
 {-|
-* When the state is \"Locked\", @wait@ /blocks/ until a call to 'release' in
-another thread changes it to \"Unlocked\".
+* When the state is \"locked\" @wait@ /blocks/ until a call to 'release' in
+another thread changes it to \"unlocked\".
 
-* When the state is \"Unlocked\" @wait@ returns immediately.
+* When the state is \"unlocked\" @wait@ returns immediately.
 
 @wait@ does not alter the state of the lock.
 
@@ -248,10 +253,11 @@ Note that @wait@ is just a convenience function defined as:
 wait ∷ RLock → IO ()
 wait l = block $ acquire l >> release l
 
-{-| Determine the state of the reentrant lock.
+{-| 
+Determine the state of the reentrant lock.
 
-Notice that this is only a snapshot of the state. By the time a program reacts
-on its result it may already be out of date.
+Note that this is only a snapshot of the state. By the time a program reacts on
+its result it may already be out of date.
 -}
 state ∷ RLock → IO State
 state = fmap fst ∘ readMVar ∘ un
