@@ -41,6 +41,7 @@ module Control.Concurrent.Lock
       -- * Convenience functions
     , with
     , tryWith
+    , wait
       -- * Querying locks
     , locked
     ) where
@@ -58,7 +59,7 @@ import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , isEmptyMVar
                                )
 import Control.Exception       ( block, bracket_, finally )
-import Control.Monad           ( Monad, return, (>>=), fail, when, fmap )
+import Control.Monad           ( Monad, return, (>>=), (>>), fail, when, fmap )
 import Data.Bool               ( Bool, not )
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
@@ -75,21 +76,25 @@ import Data.Function.Unicode   ( (∘) )
 -- Locks
 --------------------------------------------------------------------------------
 
-{-| A lock is in one of two states, \"locked\" or \"unlocked\". -}
+-- | A lock is in one of two states: \"Locked\" or \"Unlocked\".
 newtype Lock = Lock {un ∷ MVar ()} deriving (Eq, Typeable)
 
--- | Create an unlocked lock.
+-- | Create a lock in the \"Unlocked\" state.
 new ∷ IO Lock
 new = Lock <$> newMVar ()
 
--- | Create a locked lock.
+-- | Create a lock in the \"Locked\" state.
 newAcquired ∷ IO Lock
 newAcquired = Lock <$> newEmptyMVar
 
-{-| When the state is unlocked, @acquire@ changes the state to locked and
-returns immediately. When the state is locked, @acquire@ blocks until a call to
-'release' in another thread changes it to unlocked, then the @acquire@ call
-resets it to locked and returns.
+{-| @acquire@ behaves as follows:
+
+* When the state is \"Unlocked\", @acquire@ changes the state to \"Locked\" and
+returns immediately.
+
+* When the state is \"Locked\", @acquire@ /blocks/ until a call to 'release' in
+another thread changes it to \"Unlocked\". @acquire@ then changes the state back
+to \"Locked\" and returns immediately.
 
 There are two further important properties of @acquire@:
 
@@ -105,17 +110,20 @@ wake-up order is undefined)
 acquire ∷ Lock → IO ()
 acquire = takeMVar ∘ un
 
-{-| A non-blocking 'acquire'. When the state is unlocked, @tryAcquire@ changes
-the state to locked and returns immediately with 'True'. When the state is
-locked, @tryAcquire@ leaves the state unchanged and returns immediately with
-'False'.
+{-| A non-blocking 'acquire'.
+
+* When the state is \"Unlocked\", @tryAcquire@ changes the state to \"Locked\"
+and returns immediately with 'True'.
+
+* When the state is \"Locked\", @tryAcquire@ leaves the state unchanged and
+returns immediately with 'False'.
 -}
 tryAcquire ∷ Lock → IO Bool
 tryAcquire = fmap isJust ∘ tryTakeMVar ∘ un
 
-{-| @release@ changes the state to unlocked and returns immediately.
+{-| @release@ changes the state to \"Unlocked\" and returns immediately.
 
-Note that it is an error to release an unlocked lock!
+Note that it is an error to release a lock in the \"Unlocked\" state!
 
 If there are any threads blocked on 'acquire' the thread that first called
 @acquire@ will be woken up.
@@ -147,10 +155,26 @@ tryWith l a = block $ do
     then Just <$> a `finally` release l
     else return Nothing
 
--- | Determines if the lock is in the locked state.
---
--- Notice that this is only a snapshot of the state. By the time a program
--- reacts on its result it may already be out of date.
+{-|
+* When the state is \"Locked\", @wait@ /blocks/ until a call to 'release' in
+another thread changes it to \"Unlocked\".
+
+* When the state is \"Unlocked\" @wait@ returns immediately.
+
+@wait@ does not alter the state of the lock.
+
+Note that @wait@ is just a convenience function defined as:
+
+@wait l = 'block' '$' 'acquire' l '>>' 'release' l@
+-}
+wait ∷ Lock → IO ()
+wait l = block $ acquire l >> release l
+
+{-| Determines if the lock is in the \"Locked\" state.
+
+Notice that this is only a snapshot of the state. By the time a program reacts
+on its result it may already be out of date.
+-}
 locked ∷ Lock → IO Bool
 locked = isEmptyMVar ∘ un
 
