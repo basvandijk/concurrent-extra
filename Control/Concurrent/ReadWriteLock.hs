@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable
+{-# LANGUAGE BangPatterns
+           , DeriveDataTypeable
            , NamedFieldPuns
            , NoImplicitPrelude
            , TupleSections
@@ -78,9 +79,7 @@ import Data.Function           ( ($), const )
 import Data.Int                ( Int )
 import Data.Maybe              ( Maybe(Nothing, Just) )
 import Data.Typeable           ( Typeable )
-import Prelude                 ( fromInteger, succ, pred
-                               , ($!), error
-                               )
+import Prelude                 ( fromInteger, succ, pred, error )
 import System.IO               ( IO )
 
 -- from base-unicode-symbols
@@ -92,6 +91,7 @@ import           Control.Concurrent.Lock ( Lock )
 import qualified Control.Concurrent.Lock as Lock
 
 import Utils ( void )
+
 
 -------------------------------------------------------------------------------
 -- Read Write Lock
@@ -152,7 +152,8 @@ acquireRead (RWLock {state, readLock, writeLock}) = block $ do
   case st of
     Free   → do Lock.acquire readLock
                 putMVar state (Read 1)
-    Read n → putMVar state (Read ∘ succ $! n)
+    Read n → let !sn = succ n
+             in putMVar state (Read sn)
     Write  → do putMVar state st
                 Lock.acquire writeLock
                 modifyMVar_ state ∘ const $ do
@@ -172,7 +173,8 @@ tryAcquireRead (RWLock {state, readLock}) = block $ do
     Free   → do Lock.acquire readLock
                 putMVar state (Read 1)
                 return True
-    Read n → do putMVar state (Read ∘ succ $! n)
+    Read n → do let !sn = succ n
+                putMVar state (Read sn)
                 return True
     Write  → do putMVar state st
                 return False
@@ -192,7 +194,8 @@ releaseRead (RWLock {state, readLock}) = block $ do
     Free   → putMVar state st >> err
     Read 1 → do Lock.release readLock
                 putMVar state Free
-    Read n → putMVar state (Read ∘ pred $! n)
+    Read n → let !pn = pred n
+             in putMVar state (Read pn)
     Write  → putMVar state st >> err
   where
     err = error $ moduleName ⊕ ".releaseRead: already released"
