@@ -87,6 +87,17 @@ library
 
 executable test-concurrent-extra
   main-is: test.hs
+  other-modules: Control.Concurrent.Event.Test
+               , Control.Concurrent.Lock.Test
+               , Control.Concurrent.RLock.Test
+               , Control.Concurrent.Broadcast.Test
+               , Control.Concurrent.ReadWriteLock.Test
+               , Control.Concurrent.ReadWriteVar.Test
+               , Control.Concurrent.Thread.Test
+               , Control.Concurrent.STM.Event.Test
+               , Control.Concurrent.STM.Broadcast.Test
+               , TestUtils
+
   ghc-options: -Wall
 
   if flag(test)
