@@ -130,9 +130,7 @@ readTimeout (Broadcast mv) time = block $ do
                  putMVar mv (mx, l:ls)
                  my ← unblock $ timeout (max time 0) (takeMVar l)
                  case my of
-                   Nothing → do (mx', ls') ← takeMVar mv
-                                let ls'' = delete l ls'
-                                length ls'' `seq` putMVar mv (mx', ls'')
+                   Nothing → do deleteReader l mv
                                 return my
                    Just _  → return my
     Just _  → do putMVar mv t
@@ -154,4 +152,14 @@ clear ∷ Broadcast α → IO ()
 clear (Broadcast mv) = purelyModifyMVar mv $ first $ const Nothing
 
 
+-------------------------------------------------------------------------------
+
+deleteReader ∷ MVar α → MVar (Maybe α, [MVar α]) → IO ()
+deleteReader l mv = do 
+  (mx, ls) ← takeMVar mv
+  let ls' = delete l ls
+  length ls' `seq` putMVar mv (mx, ls')
+
+
 -- The End ---------------------------------------------------------------------
+
