@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude
            , UnicodeSyntax
-           , ScopedTypeVariables  
+           , ScopedTypeVariables
   #-}
 
 module Control.Concurrent.Lock.Test ( tests ) where
@@ -61,19 +61,13 @@ test_lock_2 = assert $ notWithin (10 ⋅ a_moment) $ do
   Lock.acquire l
 
 test_lock_3 ∷ Assertion
-test_lock_3 = assertException "" $ do
-  l ← Lock.new
-  Lock.release l
+test_lock_3 = assertException "" $ Lock.new >>= Lock.release
 
 test_lock_4 ∷ Assertion
-test_lock_4 = assert $ do
-  l ← Lock.new
-  fmap not $ Lock.locked l
+test_lock_4 = assert $ Lock.new >>= fmap not ∘ Lock.locked
 
 test_lock_5 ∷ Assertion
-test_lock_5 = assert $ do
-  l ← Lock.newAcquired
-  Lock.locked l
+test_lock_5 = assert $ Lock.newAcquired >>= Lock.locked
 
 test_lock_6 ∷ Assertion
 test_lock_6 = assert $ do
