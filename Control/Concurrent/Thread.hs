@@ -101,16 +101,18 @@ instance Ord ThreadId where
 instance Show ThreadId where
     show = show ∘ threadId
 
-{-|
-Internally used function which generalises 'forkIO' and 'forkOS' by
-parameterizing it by the function which does the actual forking.
+{-| 
+Internally used function which generalises 'forkIO' and 'forkOS'. Parametrised
+by the function which does the actual forking.
 -}
 fork ∷ (IO () → IO Conc.ThreadId) → IO () → IO ThreadId
-fork f a = do
-  stp ← Broadcast.new
-  tid ← block $ f $ catch (unblock a >> Broadcast.write stp Nothing)
-                          (Broadcast.write stp ∘ Just)
-  return $ ThreadId stp tid
+fork doFork a = do
+  stop ← Broadcast.new
+  tid ← block $ doFork
+              $ let writeStop = Broadcast.write stop
+                in catch (unblock a >> writeStop Nothing)
+                         (writeStop ∘ Just)
+  return $ ThreadId stop tid
 
 {-|
 Sparks off a new thread to run the given 'IO' computation and returns the
