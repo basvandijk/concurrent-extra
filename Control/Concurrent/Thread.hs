@@ -81,11 +81,10 @@ import Utils ( void )
 -------------------------------------------------------------------------------
 
 {-|
+A @'ThreadId' &#x3B1;@ is an abstract type representing a handle to a thread
+that is executing or has executed a computation of type @'IO' &#x3B1;@.
 
-A @'ThreadId' &#945;@ is an abstract type representing a handle to a thread that
-is executing or has executed a computation of type @'IO' &#945;@.
-
-@'ThreadId' &#945;@ is an instance of 'Eq', 'Ord' and 'Show', where the 'Ord'
+@'ThreadId' &#x3B1;@ is an instance of 'Eq', 'Ord' and 'Show', where the 'Ord'
 instance implements an arbitrary total ordering over 'ThreadId's. The 'Show'
 instance lets you convert an arbitrary-valued 'ThreadId' to string form; showing
 a 'ThreadId' value is occasionally useful when debugging or diagnosing the
@@ -93,7 +92,7 @@ behaviour of a concurrent program.
 -}
 data ThreadId α = ThreadId
     { stopped   ∷ Broadcast (Either SomeException α)
-      -- | Extract the underlying @Control.Concurrent.@'Conc.ThreadId'.
+      -- | Extract the underlying 'Conc.ThreadId'.
     , threadId  ∷ Conc.ThreadId
     } deriving Typeable
 
@@ -182,8 +181,8 @@ waitTimeout = Broadcast.readTimeout ∘ stopped
 {-|
 Returns 'True' if the given thread is currently running.
 
-Notice that this observation is only a snapshot of thread's state. By the time a
-program reacts on its result it may already be out of date.
+Notice that this observation is only a snapshot of a thread's state. By the time
+a program reacts on its result it may already be out of date.
 -}
 isRunning ∷ ThreadId α → IO Bool
 isRunning = fmap isNothing ∘ Broadcast.tryRead ∘ stopped
