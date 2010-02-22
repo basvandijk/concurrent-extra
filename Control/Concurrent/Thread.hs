@@ -92,7 +92,8 @@ behaviour of a concurrent program.
 -}
 data ThreadId α = ThreadId
     { stopped   ∷ Broadcast (Either SomeException α)
-      -- | Extract the underlying 'Conc.ThreadId'.
+      -- | Extract the underlying 'Conc.ThreadId'
+      -- (Conctrol.Concurrent.ThreadId).
     , threadId  ∷ Conc.ThreadId
     } deriving Typeable
 
