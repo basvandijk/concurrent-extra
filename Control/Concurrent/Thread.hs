@@ -50,10 +50,11 @@ import Control.Exception   ( Exception, SomeException
                            , catch, block, unblock
                            )
 import Control.Monad       ( return, (>>=), fail, (>>), fmap )
-import Data.Bool           ( Bool )
+import Data.Bool           ( Bool(..) )
 import Data.Eq             ( Eq, (==) )
+import Data.Either         ( Either(Left, Right) )
 import Data.Function       ( ($), on )
-import Data.Maybe          ( Maybe(Nothing, Just), isNothing, isJust )
+import Data.Maybe          ( Maybe(..), isNothing, isJust )
 import Data.Ord            ( Ord, compare )
 import Data.Typeable       ( Typeable )
 import Prelude             ( Integer )
@@ -80,41 +81,41 @@ import Utils ( void )
 -------------------------------------------------------------------------------
 
 {-|
-A 'ThreadId' is an abstract type representing a handle to a thread. 'ThreadId'
-is an instance of 'Eq', 'Ord' and 'Show', where the 'Ord' instance implements an
-arbitrary total ordering over 'ThreadId's. The 'Show' instance lets you convert
-an arbitrary-valued 'ThreadId' to string form; showing a 'ThreadId' value is
-occasionally useful when debugging or diagnosing the behaviour of a concurrent
-program.
 
-Note: This is a wrapper around 'Conc.ThreadId'.
+A @'ThreadId' &#945;@ is an abstract type representing a handle to a thread that
+is executing or has executed a computation of type @'IO' &#945;@.
+
+@'ThreadId' &#945;@ is an instance of 'Eq', 'Ord' and 'Show', where the 'Ord'
+instance implements an arbitrary total ordering over 'ThreadId's. The 'Show'
+instance lets you convert an arbitrary-valued 'ThreadId' to string form; showing
+a 'ThreadId' value is occasionally useful when debugging or diagnosing the
+behaviour of a concurrent program.
 -}
-data ThreadId = ThreadId
-    { stopped   ∷ Broadcast (Maybe SomeException)
-      -- | Extract the underlying 'Conc.ThreadId'.
+data ThreadId α = ThreadId
+    { stopped   ∷ Broadcast (Either SomeException α)
+      -- | Extract the underlying @Control.Concurrent.@'Conc.ThreadId'.
     , threadId  ∷ Conc.ThreadId
     } deriving Typeable
 
-instance Eq ThreadId where
+instance Eq (ThreadId α) where
     (==) = (==) `on` threadId
 
-instance Ord ThreadId where
+instance Ord (ThreadId α) where
     compare = compare `on` threadId
 
-instance Show ThreadId where
+instance Show (ThreadId α) where
     show = show ∘ threadId
 
 {-|
 Internally used function which generalises 'forkIO' and 'forkOS'. Parametrised
 by the function which does the actual forking.
 -}
-fork ∷ (IO () → IO Conc.ThreadId) → IO () → IO ThreadId
+fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
 fork doFork a = do
   stop ← Broadcast.new
-  tid ← block $ doFork
-              $ let writeStop = Broadcast.write stop
-                in catch (unblock a >> writeStop Nothing)
-                         (writeStop ∘ Just)
+  tid ← block $ doFork $ let writeStop = Broadcast.write stop
+                         in catch (unblock a >>= writeStop ∘ Right)
+                                                (writeStop ∘ Left)
   return $ ThreadId stop tid
 
 {-|
@@ -132,7 +133,7 @@ The newly created thread has an exception handler that discards the exceptions
 other exceptions to the uncaught exception handler (see
 @setUncaughtExceptionHandler@).
 -}
-forkIO ∷ IO () → IO ThreadId
+forkIO ∷ IO α → IO (ThreadId α)
 forkIO = fork Conc.forkIO
 
 {-|
@@ -151,27 +152,31 @@ to be made without blocking all the Haskell threads (with GHC), it is only
 necessary to use the @-threaded@ option when linking your program, and to make
 sure the foreign import is not marked @unsafe@.
 -}
-forkOS ∷ IO () → IO ThreadId
+forkOS ∷ IO α → IO (ThreadId α)
 forkOS = fork Conc.forkOS
 
 {-|
 Block until the given thread is terminated.
 
-Returns 'Nothing' if the thread terminated normally or 'Just' @e@ if the
-exception @e@ was thrown in the thread and wasn't caught.
+* Returns @'Right' x@ if the thread terminated normally and returned @x@.
+
+* Returns @'Left' e@ if some exception @e@ was thrown in the thread and wasn't
+caught.
 -}
-wait ∷ ThreadId → IO (Maybe SomeException)
+wait ∷ ThreadId α → IO (Either SomeException α)
 wait = Broadcast.read ∘ stopped
 
 {-|
 Block until the given thread is terminated or until a timer expires.
 
-Returns 'Nothing' if a timeout occurred or 'Just' the result 'wait' would return
-when the thread finished within the specified time.
+* Returns 'Nothing' if a timeout occurred.
+
+* Returns 'Just' the result 'wait' would return when the thread finished within
+the specified time.
 
 The timeout is specified in microseconds.
 -}
-waitTimeout ∷ ThreadId → Integer → IO (Maybe (Maybe SomeException))
+waitTimeout ∷ ThreadId α → Integer → IO (Maybe (Either SomeException α))
 waitTimeout = Broadcast.readTimeout ∘ stopped
 
 {-|
@@ -180,7 +185,7 @@ Returns 'True' if the given thread is currently running.
 Notice that this observation is only a snapshot of thread's state. By the time a
 program reacts on its result it may already be out of date.
 -}
-isRunning ∷ ThreadId → IO Bool
+isRunning ∷ ThreadId α → IO Bool
 isRunning = fmap isNothing ∘ Broadcast.tryRead ∘ stopped
 
 -------------------------------------------------------------------------------
@@ -197,19 +202,19 @@ referenced from anywhere. The 'killThread' function is defined in terms of
 This function blocks until the target thread is terminated. It is a no-op if the
 target thread has already completed.
 -}
-killThread ∷ ThreadId → IO ()
+killThread ∷ ThreadId α → IO ()
 killThread t = throwTo t ThreadKilled >> void (wait t)
 
 {-|
 Like 'killThread' but with a timeout. Returns 'True' if the target thread was
-terminated without the given amount of time, 'False' otherwise.
+terminated within the given amount of time, 'False' otherwise.
 
 The timeout is specified in microseconds.
 
 Note that even when a timeout occurs, the target thread can still terminate at a
 later time as a direct result of calling this function.
 -}
-killThreadTimeout ∷ ThreadId → Integer → IO Bool
+killThreadTimeout ∷ ThreadId α → Integer → IO Bool
 killThreadTimeout t time = do throwTo t ThreadKilled
                               isJust <$> waitTimeout t time
 
@@ -241,7 +246,7 @@ be delivered at the first possible opportunity. In particular, a thread may
 'unblock' and then re-'block' exceptions without receiving a pending
 'throwTo'. This is arguably undesirable behaviour.
 -}
-throwTo ∷ Exception e ⇒ ThreadId → e → IO ()
+throwTo ∷ Exception e ⇒ ThreadId α → e → IO ()
 throwTo = Conc.throwTo ∘ threadId
 
 
