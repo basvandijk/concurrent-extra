@@ -36,7 +36,7 @@ description:
   .
   Besides these synchronisation primitives the package provides:
   .
-  * @Thread@: A threads extended with the ability to wait for their
+  * @Thread@: Threads extended with the ability to wait for their
     termination.
   .
   * @delay@: Arbitrarily long thread delays.
