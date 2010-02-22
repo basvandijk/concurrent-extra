@@ -51,7 +51,7 @@ import Control.Exception   ( Exception, SomeException
                            )
 import Control.Monad       ( return, (>>=), fail, (>>), fmap )
 import Data.Bool           ( Bool )
-import Data.Eq             ( Eq )
+import Data.Eq             ( Eq, (==) )
 import Data.Function       ( ($), on )
 import Data.Int            ( Int )
 import Data.Maybe          ( Maybe(Nothing, Just), isNothing, isJust )
@@ -93,7 +93,10 @@ data ThreadId = ThreadId
     { stopped   ∷ Broadcast (Maybe SomeException)
       -- | Extract the underlying 'Conc.ThreadId'.
     , threadId  ∷ Conc.ThreadId
-    } deriving (Eq, Typeable)
+    } deriving Typeable
+
+instance Eq ThreadId where
+    (==) = (==) `on` threadId
 
 instance Ord ThreadId where
     compare = compare `on` threadId
@@ -101,7 +104,7 @@ instance Ord ThreadId where
 instance Show ThreadId where
     show = show ∘ threadId
 
-{-| 
+{-|
 Internally used function which generalises 'forkIO' and 'forkOS'. Parametrised
 by the function which does the actual forking.
 -}

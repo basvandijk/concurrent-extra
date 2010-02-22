@@ -64,8 +64,8 @@ module Control.Concurrent.ReadWriteVar
 -- from base
 import Control.Monad           ( (>>=), fmap, liftM2 )
 import Data.Bool               ( Bool(..) )
-import Data.Eq                 ( Eq )
-import Data.Function           ( ($) )
+import Data.Eq                 ( Eq, (==) )
+import Data.Function           ( ($), on )
 import Data.Maybe              ( Maybe(..), isJust )
 import Data.IORef              ( IORef, newIORef, readIORef )
 import Data.Typeable           ( Typeable )
@@ -90,7 +90,12 @@ import Utils ( modifyIORefM, modifyIORefM_ )
 -------------------------------------------------------------------------------
 
 -- | Concurrently readable and sequentially writable variable.
-data RWVar α = RWVar RWLock (IORef α) deriving (Eq, Typeable)
+data RWVar α = RWVar RWLock (IORef α) deriving Typeable
+
+instance Eq (RWVar α) where
+    (==) = (==) `on` rwlock
+        where
+          rwlock (RWVar rwl _) = rwl
 
 -- | Create a new 'RWVar'.
 new ∷ α → IO (RWVar α)

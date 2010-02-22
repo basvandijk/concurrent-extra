@@ -75,7 +75,7 @@ import Control.Monad           ( return, (>>=), return, fail, (>>)
 import Data.Bool               ( Bool(False, True) )
 import Data.Char               ( String )
 import Data.Eq                 ( Eq, (==) )
-import Data.Function           ( ($), const )
+import Data.Function           ( ($), const, on )
 import Data.Int                ( Int )
 import Data.Maybe              ( Maybe(Nothing, Just) )
 import Data.Typeable           ( Typeable )
@@ -109,7 +109,10 @@ from acquiring both read and write access.
 data RWLock = RWLock { state     ∷ MVar State
                      , readLock  ∷ Lock
                      , writeLock ∷ Lock
-                     } deriving (Eq, Typeable)
+                     } deriving Typeable
+
+instance Eq RWLock where
+    (==) = (==) `on` state
 
 -- | Internal state of the 'RWLock'.
 data State = Free | Read Int | Write
