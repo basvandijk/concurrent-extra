@@ -19,6 +19,7 @@ import qualified Control.Concurrent.ReadWriteVar.Test  as RWVar         ( tests 
 import qualified Control.Concurrent.Thread.Test        as Thread        ( tests )
 import qualified Control.Concurrent.STM.Event.Test     as STM_Event     ( tests )
 import qualified Control.Concurrent.STM.Broadcast.Test as STM_Broadcast ( tests )
+import qualified Control.Concurrent.Timeout.Test       as Timeout       ( tests )
 
 -- from test-framework:
 import Test.Framework  ( Test, defaultMain, testGroup )
@@ -34,7 +35,7 @@ main = defaultMain tests
 tests ∷ [Test]
 tests = [ testGroup "Pessimistic locking"
           [ testGroup "Event"         Event.tests
-          , testGroup "Lock"          Lock.tests          
+          , testGroup "Lock"          Lock.tests
           , testGroup "RLock"         RLock.tests
           , testGroup "Broadcast"     Broadcast.tests
           , testGroup "ReadWriteLock" RWLock.tests
@@ -45,6 +46,7 @@ tests = [ testGroup "Pessimistic locking"
           [ testGroup "Event"     STM_Event.tests
           , testGroup "Broadcast" STM_Broadcast.tests
           ]
+        , testGroup "Timeout" Timeout.tests
         ]
 
 

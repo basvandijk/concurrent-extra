@@ -77,6 +77,7 @@ library
                  , Control.Concurrent.Thread
                  , Control.Concurrent.STM.Event
                  , Control.Concurrent.STM.Broadcast
+                 , Control.Concurrent.Timeout
   other-modules: Utils
   ghc-options: -Wall
 
@@ -96,6 +97,7 @@ executable test-concurrent-extra
                , Control.Concurrent.Thread.Test
                , Control.Concurrent.STM.Event.Test
                , Control.Concurrent.STM.Broadcast.Test
+               , Control.Concurrent.Timeout.Test
                , TestUtils
 
   ghc-options: -Wall
