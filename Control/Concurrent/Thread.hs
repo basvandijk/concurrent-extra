@@ -33,7 +33,6 @@ module Control.Concurrent.Thread
   , wait
   , waitTimeout
   , isRunning
-  , delay
   , killThread
   , killThreadTimeout
   , throwTo
@@ -50,26 +49,22 @@ import Control.Exception   ( Exception, SomeException
                            , AsyncException(ThreadKilled)
                            , catch, block, unblock
                            )
-import Control.Monad       ( return, (>>=), fail, (>>), fmap, when )
+import Control.Monad       ( return, (>>=), fail, (>>), fmap )
 import Data.Bool           ( Bool )
 import Data.Eq             ( Eq, (==) )
 import Data.Function       ( ($), on )
-import Data.Int            ( Int )
 import Data.Maybe          ( Maybe(Nothing, Just), isNothing, isJust )
-import Data.Ord            ( Ord, compare, min )
+import Data.Ord            ( Ord, compare )
 import Data.Typeable       ( Typeable )
-import Prelude             ( Integer, toInteger, fromInteger
-                           , (-), maxBound
-                           )
+import Prelude             ( Integer )
 import System.IO           ( IO )
 
 import Text.Show           ( Show, show )
 
 import qualified Control.Concurrent as Conc
-    ( ThreadId, forkIO, forkOS, throwTo, threadDelay )
+    ( ThreadId, forkIO, forkOS, throwTo )
 
 -- from base-unicode-symbols:
-import Data.Eq.Unicode       ( (≢) )
 import Data.Function.Unicode ( (∘) )
 
 -- from concurrent-extra:
@@ -176,7 +171,7 @@ when the thread finished within the specified time.
 
 The timeout is specified in microseconds.
 -}
-waitTimeout ∷ ThreadId → Int → IO (Maybe (Maybe SomeException))
+waitTimeout ∷ ThreadId → Integer → IO (Maybe (Maybe SomeException))
 waitTimeout = Broadcast.readTimeout ∘ stopped
 
 {-|
@@ -187,22 +182,6 @@ program reacts on its result it may already be out of date.
 -}
 isRunning ∷ ThreadId → IO Bool
 isRunning = fmap isNothing ∘ Broadcast.tryRead ∘ stopped
-
-{-|
-Like 'Conc.threadDelay', but not bounded by an 'Int'.
-
-Suspends the current thread for a given number of microseconds (GHC only).
-
-There is no guarantee that the thread will be rescheduled promptly when the
-delay has expired, but the thread will never continue to run earlier than
-specified.
--}
-delay ∷ Integer → IO ()
-delay time = do
-  let maxWait = min time $ toInteger (maxBound ∷ Int)
-  Conc.threadDelay $ fromInteger maxWait
-  when (maxWait ≢ time) $ delay (time - maxWait)
-
 
 -------------------------------------------------------------------------------
 -- Convenience functions
@@ -225,10 +204,12 @@ killThread t = throwTo t ThreadKilled >> void (wait t)
 Like 'killThread' but with a timeout. Returns 'True' if the target thread was
 terminated without the given amount of time, 'False' otherwise.
 
+The timeout is specified in microseconds.
+
 Note that even when a timeout occurs, the target thread can still terminate at a
 later time as a direct result of calling this function.
 -}
-killThreadTimeout ∷ ThreadId → Int → IO Bool
+killThreadTimeout ∷ ThreadId → Integer → IO Bool
 killThreadTimeout t time = do throwTo t ThreadKilled
                               isJust <$> waitTimeout t time
 

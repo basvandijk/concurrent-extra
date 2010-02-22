@@ -4,7 +4,19 @@
            , UnicodeSyntax
   #-}
 
+-------------------------------------------------------------------------------
+-- |
+-- Module     : Control.Concurrent.Timeout
+-- Copyright  : (c) 2010 Bas van Dijk & Roel van Dijk
+-- License    : BSD3 (see the file LICENSE)
+-- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>
+--            , Roel van Dijk <vandijk.roel@gmail.com>
+--
+-- Wait arbitrarily long for an IO computation to finish.
+-------------------------------------------------------------------------------
+
 module Control.Concurrent.Timeout ( timeout ) where
+
 
 -------------------------------------------------------------------------------
 -- Imports
@@ -35,7 +47,7 @@ import qualified System.Timeout ( timeout )
 import Data.Eq.Unicode    ( (≡) )
 
 -- from concurrent-extra:
-import qualified Control.Concurrent.Thread as Thread ( delay )
+import Control.Concurrent.Thread.Delay ( delay )
 
 
 -------------------------------------------------------------------------------
@@ -95,7 +107,7 @@ timeout n f
         ex  ← fmap Timeout newUnique
         handleJust (\e → if e ≡ ex then Just () else Nothing)
                    (\_ → return Nothing)
-                   (bracket (forkIO (Thread.delay n >> throwTo pid ex))
+                   (bracket (forkIO (delay n >> throwTo pid ex))
                             (killThread)
                             (\_ → fmap Just f))
 

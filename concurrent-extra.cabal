@@ -14,7 +14,7 @@ category:      Concurrency
 synopsis:      Extra concurrency primitives
 description:
   The @concurrent-extra@ package offers among other things the
-  following selection of synchronization primitives:
+  following selection of synchronisation primitives:
   .
   * @Lock@: Enforce exclusive access to a resource. Also known as a
     binary semaphore or mutex.
@@ -24,7 +24,7 @@ description:
   .
   * @Broadcast@: Wake multiple threads by broadcasting a value.
   .
-  * @Event@: Wake multiple threads by signaling an event.
+  * @Event@: Wake multiple threads by signalling an event.
   .
   * @ReadWriteLock@: Multiple-reader, single-writer locks. Used to
     protect shared resources which may be concurrently read, but only
@@ -34,9 +34,14 @@ description:
   .
   The package also provides @STM@ versions of @Broadcast@ and @Event@.
   .
-  Besides these synchronization primitives the package also provides
-  other concurrency mechanisms like: a @Thread@ on which you can wait
-  for termination.
+  Besides these synchronisation primitives the package provides:
+  .
+  * @Thread@: A threads extended with the ability to wait for their
+    termination.
+  .
+  * @delay@: Arbitrarily long thread delays.
+  .
+  * @timeout@: Wait arbitrarily long for an IO computation to finish.
   .
   Please consult the API documentation of the individual modules for
   more detailed information.
@@ -44,9 +49,9 @@ description:
   This package was inspired by the concurrency libraries of Java and
   Python.
 
---source-repository head
---  Type: darcs
---  Location: http://code.haskell.org/concurrent-extra
+source-repository head
+  Type: darcs
+  Location: http://code.haskell.org/concurrent-extra
 
 -------------------------------------------------------------------------------
 
@@ -75,6 +80,7 @@ library
                  , Control.Concurrent.ReadWriteLock
                  , Control.Concurrent.ReadWriteVar
                  , Control.Concurrent.Thread
+                 , Control.Concurrent.Thread.Delay
                  , Control.Concurrent.STM.Event
                  , Control.Concurrent.STM.Broadcast
                  , Control.Concurrent.Timeout

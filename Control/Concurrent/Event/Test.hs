@@ -1,6 +1,6 @@
 {-# LANGUAGE NoImplicitPrelude
            , UnicodeSyntax
-           , ScopedTypeVariables  
+           , ScopedTypeVariables
   #-}
 
 module Control.Concurrent.Event.Test ( tests ) where
@@ -13,11 +13,11 @@ module Control.Concurrent.Event.Test ( tests ) where
 import Control.Exception  ( catch, throwTo, ErrorCall(..) )
 import Control.Concurrent ( forkIO )
 import Control.Monad      ( return, (>>=), fail, (>>)
-                          , mapM_, replicateM, replicateM_ 
+                          , mapM_, replicateM, replicateM_
                           )
 import Data.Function      ( ($) )
 import Data.Int           ( Int )
-import Prelude            ( fromInteger )
+import Prelude            ( fromInteger, toInteger )
 
 -- from base-unicode-symbols:
 import Prelude.Unicode ( (⋅) )
@@ -98,7 +98,7 @@ test_event_4 = assert $ within (10 ⋅ a_moment) $ do
 test_event_5 ∷ Assertion
 test_event_5 = assert $ within (10 ⋅ a_moment) $ do
   e ← Event.new
-  Event.waitTimeout e a_moment
+  Event.waitTimeout e $ toInteger a_moment
 
 test_event_6 ∷ Assertion
 test_event_6 = assert $ notWithin (10 ⋅ a_moment) $ do

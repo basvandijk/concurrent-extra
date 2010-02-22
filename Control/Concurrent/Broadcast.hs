@@ -51,22 +51,20 @@ import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
 import Control.Exception       ( block, unblock )
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($), const )
-import Data.Int                ( Int )
 import Data.List               ( delete, length )
 import Data.Maybe              ( Maybe(Nothing, Just) )
 import Data.Ord                ( Ord, max )
 import Data.Tuple              ( fst )
 import Data.Typeable           ( Typeable )
-import Prelude                 ( fromInteger, seq )
+import Prelude                 ( Integer, fromInteger, seq )
 import System.IO               ( IO )
-import System.Timeout          ( timeout )
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode   ( (∘) )
 
 -- from concurrent-extra:
-import Utils                   ( purelyModifyMVar )
-
+import Utils                      ( purelyModifyMVar )
+import Control.Concurrent.Timeout ( timeout )
 
 -------------------------------------------------------------------------------
 -- Broadcast
@@ -117,12 +115,9 @@ occurred.
 
 The timeout is specified in microseconds.  A timeout of 0 &#x3bc;s will cause
 the function to return 'Nothing' without blocking in case the 'Broadcast' was
-empty. Negative timeouts are treated the same as a timeout of 0 &#x3bc;s. The
-maximum timeout is constrained by the range of the 'Int' type. The Haskell
-standard guarantees an upper bound of at least @2^29-1@ giving a maximum timeout
-of at least @(2^29-1) / 10^6@ = ~536 seconds.
+empty. Negative timeouts are treated the same as a timeout of 0 &#x3bc;s.
 -}
-readTimeout ∷ Broadcast α → Int → IO (Maybe α)
+readTimeout ∷ Broadcast α → Integer → IO (Maybe α)
 readTimeout (Broadcast mv) time = block $ do
   t@(mx, ls) ← takeMVar mv
   case mx of
@@ -155,7 +150,7 @@ clear (Broadcast mv) = purelyModifyMVar mv $ first $ const Nothing
 -------------------------------------------------------------------------------
 
 deleteReader ∷ MVar α → MVar (Maybe α, [MVar α]) → IO ()
-deleteReader l mv = do 
+deleteReader l mv = do
   (mx, ls) ← takeMVar mv
   let ls' = delete l ls
   length ls' `seq` putMVar mv (mx, ls')

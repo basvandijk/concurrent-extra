@@ -10,23 +10,31 @@ module Control.Concurrent.Thread.Test ( tests ) where
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Concurrent ( )
+import Control.Concurrent ( threadDelay )
+import Control.Monad      ( return, (>>=), fail, (>>), fmap )
+import Data.Bool          ( Bool(False, True) )
+import Data.Function      ( ($), id )
+import Data.IORef         ( newIORef, readIORef, writeIORef )
+import Data.Maybe         ( maybe )
+import Prelude            ( fromInteger, toInteger )
+import System.Timeout     ( timeout )
 
 -- from base-unicode-symbols:
-import Prelude.Unicode       ( )
+import Prelude.Unicode ( (⋅) )
 
 -- from concurrent-extra:
-import qualified Control.Concurrent.Thread as Thread ( )
-import TestUtils ( )
+import qualified Control.Concurrent.Lock   as Lock
+import qualified Control.Concurrent.Thread as Thread
+import TestUtils ( a_moment, within )
 
 -- from HUnit:
-import Test.HUnit (  )
+import Test.HUnit ( Assertion, assert )
 
 -- from test-framework:
-import Test.Framework  ( Test )
+import Test.Framework ( Test )
 
 -- from test-framework-hunit:
-import Test.Framework.Providers.HUnit ( )
+import Test.Framework.Providers.HUnit ( testCase )
 
 
 -------------------------------------------------------------------------------
@@ -34,7 +42,39 @@ import Test.Framework.Providers.HUnit ( )
 -------------------------------------------------------------------------------
 
 tests ∷ [Test]
-tests = []
+tests = [ testCase "wait"        test_wait
+        , testCase "waitTimeout" test_waitTimeout
+        , testCase "isRunning"   test_isRunning
+        ]
+
+test_wait ∷ Assertion
+test_wait = assert $ fmap (maybe False id)
+                   $ timeout (10 ⋅ a_moment)
+                   $ do
+  r ← newIORef False
+  tid ← Thread.forkIO $ do
+    threadDelay $ 2 ⋅ a_moment
+    writeIORef r True
+  _ ← Thread.wait tid
+  readIORef r
+
+test_waitTimeout ∷ Assertion
+test_waitTimeout = assert $ within (10 ⋅ a_moment) $ do
+  l ← Lock.newAcquired
+  tid ← Thread.forkIO $ do
+    Lock.acquire l
+  _ ← Thread.waitTimeout tid (toInteger $ 5 ⋅ a_moment)
+  Lock.release l
+
+test_isRunning ∷ Assertion
+test_isRunning = assert $ fmap (maybe False id)
+                        $ timeout (10 ⋅ a_moment)
+                        $ do
+  l ← Lock.newAcquired
+  tid ← Thread.forkIO $ Lock.acquire l
+  r ← Thread.isRunning tid
+  Lock.release l
+  return r
 
 
 -- The End ---------------------------------------------------------------------

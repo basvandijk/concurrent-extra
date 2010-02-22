@@ -51,9 +51,9 @@ import Control.Applicative     ( (<$>) )
 import Control.Monad           ( fmap  )
 import Data.Bool               ( Bool(..) )
 import Data.Eq                 ( Eq )
-import Data.Int                ( Int )
 import Data.Maybe              ( isJust )
 import Data.Typeable           ( Typeable )
+import Prelude                 ( Integer )
 import System.IO               ( IO )
 
 -- from base-unicode-symbols
@@ -98,12 +98,9 @@ occurred.
 
 The timeout is specified in microseconds. A timeout of 0 &#x3bc;s will cause the
 function to return 'False' without blocking in case the event state is
-\"Cleared\". Negative timeouts are treated the same as a timeout of 0
-&#x3bc;s. The maximum timeout is constrained by the range of the 'Int' type. The
-Haskell standard guarantees an upper bound of at least @2^29-1@ giving a maximum
-timeout of at least @(2^29-1) / 10^6@ = ~536 seconds.
+\"Cleared\". Negative timeouts are treated the same as a timeout of 0 &#x3bc;s.
 -}
-waitTimeout ∷ Event → Int → IO Bool
+waitTimeout ∷ Event → Integer → IO Bool
 waitTimeout ev time = isJust <$> Broadcast.readTimeout (evBroadcast ev) time
 
 {-| Changes the state of the event to \"Set\". All threads that where waiting
