@@ -47,12 +47,12 @@ module Control.Concurrent.Thread
 import Control.Applicative ( (<$>) )
 import Control.Exception   ( Exception, SomeException
                            , AsyncException(ThreadKilled)
-                           , catch, block, unblock
+                           , try, block, unblock
                            )
 import Control.Monad       ( return, (>>=), fail, (>>), fmap )
 import Data.Bool           ( Bool(..) )
 import Data.Eq             ( Eq, (==) )
-import Data.Either         ( Either(Left, Right) )
+import Data.Either         ( Either )
 import Data.Function       ( ($), on )
 import Data.Maybe          ( Maybe(..), isNothing, isJust )
 import Data.Ord            ( Ord, compare )
@@ -113,9 +113,7 @@ by the function which does the actual forking.
 fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
 fork doFork a = do
   stop ← Broadcast.new
-  tid ← block $ doFork $ let writeStop = Broadcast.write stop
-                         in catch (unblock a >>= writeStop ∘ Right)
-                                                (writeStop ∘ Left)
+  tid ← block $ doFork $ try (unblock a) >>= Broadcast.write stop
   return $ ThreadId stop tid
 
 {-|
@@ -187,6 +185,7 @@ a program reacts on its result it may already be out of date.
 -}
 isRunning ∷ ThreadId α → IO Bool
 isRunning = fmap isNothing ∘ Broadcast.tryRead ∘ stopped
+
 
 -------------------------------------------------------------------------------
 -- Convenience functions
