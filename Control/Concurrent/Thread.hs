@@ -33,9 +33,12 @@ module Control.Concurrent.Thread
   , wait
   , waitTimeout
   , isRunning
+
+    -- * Convenience functions
   , killThread
   , killThreadTimeout
   , throwTo
+  , unsafeWait
   ) where
 
 
@@ -45,14 +48,14 @@ module Control.Concurrent.Thread
 
 -- from base:
 import Control.Applicative ( (<$>) )
-import Control.Exception   ( Exception, SomeException
+import Control.Exception   ( Exception, SomeException(SomeException)
                            , AsyncException(ThreadKilled)
-                           , try, blocked, block, unblock
+                           , try, blocked, block, unblock, throwIO
                            )
 import Control.Monad       ( return, (>>=), fail, (>>), fmap )
 import Data.Bool           ( Bool(..) )
 import Data.Eq             ( Eq, (==) )
-import Data.Either         ( Either )
+import Data.Either         ( Either, either )
 import Data.Function       ( ($), on )
 import Data.Maybe          ( Maybe(..), isNothing, isJust )
 import Data.Ord            ( Ord, compare )
@@ -249,6 +252,10 @@ be delivered at the first possible opportunity. In particular, a thread may
 -}
 throwTo ∷ Exception e ⇒ ThreadId α → e → IO ()
 throwTo = Conc.throwTo ∘ threadId
+
+-- |Like 'wait' but will rethrow the exception that was thrown in target thread.
+unsafeWait ∷ ThreadId α → IO α
+unsafeWait tid = wait tid >>= either (\(SomeException e) → throwIO e) return
 
 
 -- The End ---------------------------------------------------------------------
