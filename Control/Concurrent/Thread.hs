@@ -47,7 +47,7 @@ module Control.Concurrent.Thread
 import Control.Applicative ( (<$>) )
 import Control.Exception   ( Exception, SomeException
                            , AsyncException(ThreadKilled)
-                           , try, block, unblock
+                           , try, blocked, block, unblock
                            )
 import Control.Monad       ( return, (>>=), fail, (>>), fmap )
 import Data.Bool           ( Bool(..) )
@@ -93,7 +93,7 @@ behaviour of a concurrent program.
 data ThreadId α = ThreadId
     { stopped   ∷ Broadcast (Either SomeException α)
       -- | Extract the underlying 'Conc.ThreadId'
-      -- (Conctrol.Concurrent.ThreadId).
+      -- (@Conctrol.Concurrent.ThreadId@).
     , threadId  ∷ Conc.ThreadId
     } deriving Typeable
 
@@ -113,7 +113,9 @@ by the function which does the actual forking.
 fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
 fork doFork a = do
   stop ← Broadcast.new
-  tid ← block $ doFork $ try (unblock a) >>= Broadcast.write stop
+  b ← blocked
+  tid ← block $ doFork $ try (if b then a else unblock a) >>=
+                         Broadcast.write stop
   return $ ThreadId stop tid
 
 {-|
