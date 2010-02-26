@@ -11,8 +11,9 @@ module Control.Concurrent.Thread.Test ( tests ) where
 
 -- from base:
 import Control.Concurrent ( threadDelay )
+import Control.Exception  ( unblock, block, blocked )
 import Control.Monad      ( return, (>>=), fail, (>>), fmap )
-import Data.Bool          ( Bool(False, True) )
+import Data.Bool          ( Bool(False, True), not )
 import Data.Function      ( ($), id )
 import Data.IORef         ( newIORef, readIORef, writeIORef )
 import Data.Maybe         ( maybe )
@@ -20,7 +21,7 @@ import Prelude            ( fromInteger, toInteger )
 import System.Timeout     ( timeout )
 
 -- from base-unicode-symbols:
-import Prelude.Unicode ( (⋅) )
+import Prelude.Unicode       ( (⋅) )
 
 -- from concurrent-extra:
 import qualified Control.Concurrent.Lock   as Lock
@@ -42,9 +43,11 @@ import Test.Framework.Providers.HUnit ( testCase )
 -------------------------------------------------------------------------------
 
 tests ∷ [Test]
-tests = [ testCase "wait"        test_wait
-        , testCase "waitTimeout" test_waitTimeout
-        , testCase "isRunning"   test_isRunning
+tests = [ testCase "wait"           test_wait
+        , testCase "waitTimeout"    test_waitTimeout
+        , testCase "isRunning"      test_isRunning
+        , testCase "blockedState"   test_blockedState
+        , testCase "unblockedState" test_unblockedState
         ]
 
 test_wait ∷ Assertion
@@ -75,6 +78,14 @@ test_isRunning = assert $ fmap (maybe False id)
   r ← Thread.isRunning tid
   Lock.release l
   return r
+
+test_blockedState ∷ Assertion
+test_blockedState = (block $ Thread.forkIO $ blocked) >>=
+                    Thread.unsafeWait >>= assert
+
+test_unblockedState ∷ Assertion
+test_unblockedState = (unblock $ Thread.forkIO $ fmap not $ blocked) >>=
+                      Thread.unsafeWait >>= assert
 
 
 -- The End ---------------------------------------------------------------------
