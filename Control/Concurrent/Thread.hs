@@ -1,7 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable
-           , NoImplicitPrelude
-           , UnicodeSyntax
-  #-}
+{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
 -------------------------------------------------------------------------------
 -- |
@@ -62,7 +59,6 @@ import Data.Ord            ( Ord, compare )
 import Data.Typeable       ( Typeable )
 import Prelude             ( Integer )
 import System.IO           ( IO )
-
 import Text.Show           ( Show, show )
 
 import qualified Control.Concurrent as Conc
@@ -76,7 +72,7 @@ import           Control.Concurrent.Broadcast ( Broadcast )
 import qualified Control.Concurrent.Broadcast as Broadcast
     ( new, write, read, tryRead, readTimeout )
 
-import Utils ( void )
+import Utils ( void, ifM )
 
 
 -------------------------------------------------------------------------------
@@ -116,9 +112,11 @@ by the function which does the actual forking.
 fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
 fork doFork a = do
   stop ← Broadcast.new
-  b ← blocked
-  tid ← block $ doFork $ try (if b then a else unblock a) >>=
-                         Broadcast.write stop
+  let writeToStop = Broadcast.write stop
+
+  tid ← ifM blocked (        doFork $ try          a  >>= writeToStop)
+                    (block $ doFork $ try (unblock a) >>= writeToStop)
+
   return $ ThreadId stop tid
 
 {-|

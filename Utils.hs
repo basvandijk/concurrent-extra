@@ -9,9 +9,10 @@ module Utils where
 -- from base:
 import Control.Concurrent.MVar ( MVar, takeMVar, putMVar )
 import Control.Exception       ( block )
-import Control.Monad           ( return, (>>=), (>>), fail
+import Control.Monad           ( Monad, return, (>>=), (>>), fail
                                , Functor, fmap
                                )
+import Data.Bool               ( Bool )
 import Data.Function           ( ($), const )
 import Data.IORef              ( IORef, readIORef, writeIORef )
 import System.IO               ( IO )
@@ -26,6 +27,9 @@ import Data.Function.Unicode   ( (∘) )
 
 void ∷ Functor f ⇒ f α → f ()
 void = fmap $ const ()
+
+ifM ∷ Monad m ⇒ m Bool → m α → m α → m α
+ifM c t e = c >>= \b → if b then t else e
 
 purelyModifyMVar ∷ MVar α → (α → α) → IO ()
 purelyModifyMVar mv f = block $ takeMVar mv >>= putMVar mv ∘ f
