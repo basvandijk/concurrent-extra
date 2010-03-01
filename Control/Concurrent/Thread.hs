@@ -34,11 +34,13 @@ module Control.Concurrent.Thread
   , wait
   , wait_
   , unsafeWait
+  , unsafeWait_
 
     -- ** Waiting with a timeout
   , waitTimeout
   , waitTimeout_
   , unsafeWaitTimeout
+  , unsafeWaitTimeout_
 
     -- * Quering thread status
   , isRunning
@@ -63,7 +65,7 @@ import Control.Exception   ( Exception, SomeException
 import Control.Monad       ( return, (>>=), fail, (>>), fmap )
 import Data.Bool           ( Bool(..) )
 import Data.Eq             ( Eq, (==) )
-import Data.Either         ( Either, either )
+import Data.Either         ( Either(..), either )
 import Data.Function       ( ($), on )
 import Data.Maybe          ( Maybe(..), maybe, isNothing, isJust )
 import Data.Ord            ( Ord, compare )
@@ -101,10 +103,9 @@ a 'ThreadId' value is occasionally useful when debugging or diagnosing the
 behaviour of a concurrent program.
 -}
 data ThreadId α = ThreadId
-    { stopped   ∷ Broadcast (Either SomeException α)
-      -- | Extract the underlying 'Conc.ThreadId'
-      -- (@Conctrol.Concurrent.ThreadId@).
-    , threadId  ∷ Conc.ThreadId
+    { stopped  ∷ Broadcast (Either SomeException α)
+    , threadId ∷ Conc.ThreadId -- ^ Extract the underlying 'Conc.ThreadId'
+                               -- (@Conctrol.Concurrent.ThreadId@).
     } deriving Typeable
 
 instance Eq (ThreadId α) where
@@ -120,20 +121,6 @@ instance Show (ThreadId α) where
 -------------------------------------------------------------------------------
 -- * Forking threads
 -------------------------------------------------------------------------------
-
-{-|
-Internally used function which generalises 'forkIO' and 'forkOS'. Parametrised
-by the function which does the actual forking.
--}
-fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
-fork doFork a = do
-  stop ← Broadcast.new
-  let writeToStop = Broadcast.write stop
-
-  tid ← ifM blocked (        doFork $ try          a  >>= writeToStop)
-                    (block $ doFork $ try (unblock a) >>= writeToStop)
-
-  return $ ThreadId stop tid
 
 {-|
 Sparks off a new thread to run the given 'IO' computation and returns the
@@ -172,6 +159,18 @@ sure the foreign import is not marked @unsafe@.
 forkOS ∷ IO α → IO (ThreadId α)
 forkOS = fork Conc.forkOS
 
+{-|
+Internally used function which generalises 'forkIO' and 'forkOS'. Parametrised
+by the function which does the actual forking.
+-}
+fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
+fork doFork a = do
+  stop ← Broadcast.new
+  let writeToStop = Broadcast.write stop
+  tid ← ifM blocked (        doFork $ try          a  >>= writeToStop)
+                    (block $ doFork $ try (unblock a) >>= writeToStop)
+  return $ ThreadId stop tid
+
 
 -------------------------------------------------------------------------------
 -- * Waiting on threads
@@ -188,18 +187,19 @@ caught.
 wait ∷ ThreadId α → IO (Either SomeException α)
 wait = Broadcast.read ∘ stopped
 
-{-|
-Like 'wait' but will ignore the value returned by the thread.
--}
+-- | Like 'wait' but will ignore the value returned by the thread.
 wait_ ∷ ThreadId α → IO ()
 wait_ = void ∘ wait
 
-{-|
-Like 'wait' but will either rethrow the exception that was thrown in the target
-thread or return the value that was returned from the target thread.
--}
+-- | Like 'wait' but will either rethrow the exception that was thrown in the
+-- thread or return the value that was returned by the thread.
 unsafeWait ∷ ThreadId α → IO α
 unsafeWait tid = wait tid >>= either throwInner return
+
+-- | Like 'unsafeWait' in that it will rethrow the exception that was thrown in
+-- the thread but it will ignore the value returned by the thread.
+unsafeWait_ ∷ ThreadId α → IO ()
+unsafeWait_ = void ∘ unsafeWait
 
 
 -- ** Waiting with a timeout
@@ -217,22 +217,26 @@ The timeout is specified in microseconds.
 waitTimeout ∷ ThreadId α → Integer → IO (Maybe (Either SomeException α))
 waitTimeout = Broadcast.readTimeout ∘ stopped
 
-{-|
-Like 'waitTimeout' but will ignore the value returned by the target thread.
-Returns 'False' when a timeout occurred and 'True' otherwise.
--}
+-- | Like 'waitTimeout' but will ignore the value returned by the thread.
+-- Returns 'False' when a timeout occurred and 'True' otherwise.
 waitTimeout_ ∷ ThreadId α → Integer → IO Bool
 waitTimeout_ tid t = isJust <$> waitTimeout tid t
 
 {-|
-Like 'waitTimeout' but will rethrow the exception that was thrown in the target
-thread. Returns 'Nothing' if a timeout occured or 'Just' the value
-returned from the target thread.
+Like 'waitTimeout' but will rethrow the exception that was thrown in the
+thread. Returns 'Nothing' if a timeout occured or 'Just' the value returned from
+the target thread.
 -}
 unsafeWaitTimeout ∷ ThreadId α → Integer → IO (Maybe α)
 unsafeWaitTimeout tid t = waitTimeout tid t >>= maybe (return Nothing)
                                                       (either throwInner
                                                               (return ∘ Just))
+
+-- | Like 'unsafeWaitTimeout' in that it will rethrow the exception that was
+-- thrown in the thread but it will ignore the value returned by the thread.
+-- Returns 'False' when a timeout occurred and 'True' otherwise.
+unsafeWaitTimeout_ ∷ ThreadId α → Integer → IO Bool
+unsafeWaitTimeout_ tid t = isJust <$> unsafeWaitTimeout tid t
 
 
 -------------------------------------------------------------------------------
@@ -295,7 +299,7 @@ This function blocks until the target thread is terminated. It is a no-op if the
 target thread has already completed.
 -}
 killThread ∷ ThreadId α → IO ()
-killThread t = throwTo t ThreadKilled >> wait_ t
+killThread tid = throwTo tid ThreadKilled >> wait_ tid
 
 {-|
 Like 'killThread' but with a timeout. Returns 'True' if the target thread was
@@ -307,7 +311,7 @@ Note that even when a timeout occurs, the target thread can still terminate at a
 later time as a direct result of calling this function.
 -}
 killThreadTimeout ∷ ThreadId α → Integer → IO Bool
-killThreadTimeout t time = throwTo t ThreadKilled >> waitTimeout_ t time
+killThreadTimeout tid time = throwTo tid ThreadKilled >> waitTimeout_ tid time
 
 
 -- The End ---------------------------------------------------------------------
