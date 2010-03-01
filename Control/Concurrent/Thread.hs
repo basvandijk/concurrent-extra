@@ -25,17 +25,28 @@
 module Control.Concurrent.Thread
   ( ThreadId
   , threadId
+
+    -- * Forking threads
   , forkIO
   , forkOS
+
+    -- * Waiting on threads
   , wait
+  , wait_
+  , unsafeWait
+
+    -- ** Waiting with a timeout
   , waitTimeout
+  , waitTimeout_
+  , unsafeWaitTimeout
+
+    -- * Quering thread status
   , isRunning
 
     -- * Convenience functions
+  , throwTo
   , killThread
   , killThreadTimeout
-  , throwTo
-  , unsafeWait
   ) where
 
 
@@ -45,16 +56,16 @@ module Control.Concurrent.Thread
 
 -- from base:
 import Control.Applicative ( (<$>) )
-import Control.Exception   ( Exception, SomeException(SomeException)
+import Control.Exception   ( Exception, SomeException
                            , AsyncException(ThreadKilled)
-                           , try, blocked, block, unblock, throwIO
+                           , try, blocked, block, unblock
                            )
 import Control.Monad       ( return, (>>=), fail, (>>), fmap )
 import Data.Bool           ( Bool(..) )
 import Data.Eq             ( Eq, (==) )
 import Data.Either         ( Either, either )
 import Data.Function       ( ($), on )
-import Data.Maybe          ( Maybe(..), isNothing, isJust )
+import Data.Maybe          ( Maybe(..), maybe, isNothing, isJust )
 import Data.Ord            ( Ord, compare )
 import Data.Typeable       ( Typeable )
 import Prelude             ( Integer )
@@ -72,7 +83,7 @@ import           Control.Concurrent.Broadcast ( Broadcast )
 import qualified Control.Concurrent.Broadcast as Broadcast
     ( new, write, read, tryRead, readTimeout )
 
-import Utils ( void, ifM )
+import Utils ( void, ifM, throwInner )
 
 
 -------------------------------------------------------------------------------
@@ -104,6 +115,11 @@ instance Ord (ThreadId α) where
 
 instance Show (ThreadId α) where
     show = show ∘ threadId
+
+
+-------------------------------------------------------------------------------
+-- * Forking threads
+-------------------------------------------------------------------------------
 
 {-|
 Internally used function which generalises 'forkIO' and 'forkOS'. Parametrised
@@ -156,6 +172,11 @@ sure the foreign import is not marked @unsafe@.
 forkOS ∷ IO α → IO (ThreadId α)
 forkOS = fork Conc.forkOS
 
+
+-------------------------------------------------------------------------------
+-- * Waiting on threads
+-------------------------------------------------------------------------------
+
 {-|
 Block until the given thread is terminated.
 
@@ -166,6 +187,22 @@ caught.
 -}
 wait ∷ ThreadId α → IO (Either SomeException α)
 wait = Broadcast.read ∘ stopped
+
+{-|
+Like 'wait' but will ignore the value returned by the thread.
+-}
+wait_ ∷ ThreadId α → IO ()
+wait_ = void ∘ wait
+
+{-|
+Like 'wait' but will either rethrow the exception that was thrown in the target
+thread or return the value that was returned from the target thread.
+-}
+unsafeWait ∷ ThreadId α → IO α
+unsafeWait tid = wait tid >>= either throwInner return
+
+
+-- ** Waiting with a timeout
 
 {-|
 Block until the given thread is terminated or until a timer expires.
@@ -181,6 +218,28 @@ waitTimeout ∷ ThreadId α → Integer → IO (Maybe (Either SomeException α))
 waitTimeout = Broadcast.readTimeout ∘ stopped
 
 {-|
+Like 'waitTimeout' but will ignore the value returned by the target thread.
+Returns 'False' when a timeout occurred and 'True' otherwise.
+-}
+waitTimeout_ ∷ ThreadId α → Integer → IO Bool
+waitTimeout_ tid t = isJust <$> waitTimeout tid t
+
+{-|
+Like 'waitTimeout' but will rethrow the exception that was thrown in the target
+thread. Returns 'Nothing' if a timeout occured or 'Just' the value
+returned from the target thread.
+-}
+unsafeWaitTimeout ∷ ThreadId α → Integer → IO (Maybe α)
+unsafeWaitTimeout tid t = waitTimeout tid t >>= maybe (return Nothing)
+                                                      (either throwInner
+                                                              (return ∘ Just))
+
+
+-------------------------------------------------------------------------------
+-- * Quering thread status
+-------------------------------------------------------------------------------
+
+{-|
 Returns 'True' if the given thread is currently running.
 
 Notice that this observation is only a snapshot of a thread's state. By the time
@@ -191,34 +250,8 @@ isRunning = fmap isNothing ∘ Broadcast.tryRead ∘ stopped
 
 
 -------------------------------------------------------------------------------
--- Convenience functions
+-- * Convenience functions
 -------------------------------------------------------------------------------
-
-{-|
-'killThread' terminates the given thread (GHC only). Any work already done by
-the thread isn't lost: the computation is suspended until required by another
-thread. The memory used by the thread will be garbage collected if it isn't
-referenced from anywhere. The 'killThread' function is defined in terms of
-'throwTo'.
-
-This function blocks until the target thread is terminated. It is a no-op if the
-target thread has already completed.
--}
-killThread ∷ ThreadId α → IO ()
-killThread t = throwTo t ThreadKilled >> void (wait t)
-
-{-|
-Like 'killThread' but with a timeout. Returns 'True' if the target thread was
-terminated within the given amount of time, 'False' otherwise.
-
-The timeout is specified in microseconds.
-
-Note that even when a timeout occurs, the target thread can still terminate at a
-later time as a direct result of calling this function.
--}
-killThreadTimeout ∷ ThreadId α → Integer → IO Bool
-killThreadTimeout t time = do throwTo t ThreadKilled
-                              isJust <$> waitTimeout t time
 
 {-|
 'throwTo' raises an arbitrary exception in the target thread (GHC only).
@@ -251,9 +284,30 @@ be delivered at the first possible opportunity. In particular, a thread may
 throwTo ∷ Exception e ⇒ ThreadId α → e → IO ()
 throwTo = Conc.throwTo ∘ threadId
 
--- |Like 'wait' but will rethrow the exception that was thrown in target thread.
-unsafeWait ∷ ThreadId α → IO α
-unsafeWait tid = wait tid >>= either (\(SomeException e) → throwIO e) return
+{-|
+'killThread' terminates the given thread (GHC only). Any work already done by
+the thread isn't lost: the computation is suspended until required by another
+thread. The memory used by the thread will be garbage collected if it isn't
+referenced from anywhere. The 'killThread' function is defined in terms of
+'throwTo'.
+
+This function blocks until the target thread is terminated. It is a no-op if the
+target thread has already completed.
+-}
+killThread ∷ ThreadId α → IO ()
+killThread t = throwTo t ThreadKilled >> wait_ t
+
+{-|
+Like 'killThread' but with a timeout. Returns 'True' if the target thread was
+terminated within the given amount of time, 'False' otherwise.
+
+The timeout is specified in microseconds.
+
+Note that even when a timeout occurs, the target thread can still terminate at a
+later time as a direct result of calling this function.
+-}
+killThreadTimeout ∷ ThreadId α → Integer → IO Bool
+killThreadTimeout t time = throwTo t ThreadKilled >> waitTimeout_ t time
 
 
 -- The End ---------------------------------------------------------------------

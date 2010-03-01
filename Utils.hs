@@ -8,7 +8,7 @@ module Utils where
 
 -- from base:
 import Control.Concurrent.MVar ( MVar, takeMVar, putMVar )
-import Control.Exception       ( block )
+import Control.Exception       ( SomeException(SomeException), block, throwIO )
 import Control.Monad           ( Monad, return, (>>=), (>>), fail
                                , Functor, fmap
                                )
@@ -30,6 +30,9 @@ void = fmap $ const ()
 
 ifM ∷ Monad m ⇒ m Bool → m α → m α → m α
 ifM c t e = c >>= \b → if b then t else e
+
+throwInner ∷ SomeException → IO α
+throwInner (SomeException e) = throwIO e
 
 purelyModifyMVar ∷ MVar α → (α → α) → IO ()
 purelyModifyMVar mv f = block $ takeMVar mv >>= putMVar mv ∘ f
