@@ -66,9 +66,7 @@ module Control.Concurrent.ReadWriteLock
 
 -- from base
 import Control.Applicative     ( (<$>), liftA2 )
-import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar
-                               , modifyMVar_, swapMVar
-                               )
+import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar, swapMVar )
 import Control.Exception       ( block, bracket_, finally )
 import Control.Monad           ( return, (>>=), return, fail, (>>)
                                , when, liftM3
@@ -76,7 +74,7 @@ import Control.Monad           ( return, (>>=), return, fail, (>>)
 import Data.Bool               ( Bool(False, True) )
 import Data.Char               ( String )
 import Data.Eq                 ( Eq, (==) )
-import Data.Function           ( ($), const, on )
+import Data.Function           ( ($), on )
 import Data.Int                ( Int )
 import Data.Maybe              ( Maybe(Nothing, Just) )
 import Data.Typeable           ( Typeable )
@@ -90,6 +88,7 @@ import Data.Monoid.Unicode     ( (⊕) )
 -- from concurrent-extra
 import           Control.Concurrent.Lock ( Lock )
 import qualified Control.Concurrent.Lock as Lock
+    ( new, newAcquired, acquire, tryAcquire, release, wait )
 
 import Utils ( void )
 
@@ -160,17 +159,16 @@ Implementation note: Throws an exception when more than (maxBound :: Int)
 simultaneous threads acquire the read lock. But that is unlikely.
 -}
 acquireRead ∷ RWLock → IO ()
-acquireRead (RWLock {state, readLock, writeLock}) = block $ do
-  st ← takeMVar state
-  case st of
-    Free   → do Lock.acquire readLock
-                putMVar state $ Read 1
-    Read n → putMVar state ∘ Read $! succ n
-    Write  → do putMVar state st
-                Lock.acquire writeLock
-                modifyMVar_ state $ const $ do
-                  Lock.acquire readLock
-                  return $ Read 1
+acquireRead (RWLock {state, readLock, writeLock}) = block acqRead
+    where
+      acqRead = do st ← takeMVar state
+                   case st of
+                     Free   → do Lock.acquire readLock
+                                 putMVar state $ Read 1
+                     Read n → putMVar state ∘ Read $! succ n
+                     Write  → do putMVar state st
+                                 Lock.wait writeLock
+                                 acqRead
 
 {-|
 Try to acquire the read lock; non blocking.
@@ -243,19 +241,18 @@ Blocks if another thread has acquired either read or write access. If
 'RWLock' will be \"write\".
 -}
 acquireWrite ∷ RWLock → IO ()
-acquireWrite (RWLock {state, readLock, writeLock}) = block $ do
-  st ← takeMVar state
-  case st of
-    Free   → do Lock.acquire writeLock
-                putMVar state Write
-    Read _ → do putMVar state st
-                Lock.acquire readLock
-                modifyMVar_ state $ const $ do
-                  Lock.acquire writeLock
-                  return Write
-    Write  → do putMVar state st
-                Lock.acquire writeLock
-                void $ swapMVar state Write
+acquireWrite (RWLock {state, readLock, writeLock}) = block acqWrite
+    where
+      acqWrite = do st ← takeMVar state
+                    case st of
+                      Free   → do Lock.acquire writeLock
+                                  putMVar state Write
+                      Read _ → do putMVar state st
+                                  Lock.wait readLock
+                                  acqWrite
+                      Write  → do putMVar state st
+                                  Lock.acquire writeLock
+                                  void $ swapMVar state Write
 
 {-|
 Try to acquire the write lock; non blocking.
