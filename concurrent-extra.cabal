@@ -32,8 +32,6 @@ description:
   .
   * @ReadWriteVar@: Concurrent read, sequential write variables.
   .
-  The package also provides @STM@ versions of @Broadcast@ and @Event@.
-  .
   Besides these synchronisation primitives the package provides:
   .
   * @Thread@: Threads extended with the ability to wait for their
@@ -81,8 +79,6 @@ library
                  , Control.Concurrent.ReadWriteVar
                  , Control.Concurrent.Thread
                  , Control.Concurrent.Thread.Delay
-                 , Control.Concurrent.STM.Event
-                 , Control.Concurrent.STM.Broadcast
                  , Control.Concurrent.Timeout
   other-modules: Utils
   ghc-options: -Wall
@@ -101,8 +97,6 @@ executable test-concurrent-extra
                , Control.Concurrent.ReadWriteLock.Test
                , Control.Concurrent.ReadWriteVar.Test
                , Control.Concurrent.Thread.Test
-               , Control.Concurrent.STM.Event.Test
-               , Control.Concurrent.STM.Broadcast.Test
                , Control.Concurrent.Timeout.Test
                , TestUtils
 

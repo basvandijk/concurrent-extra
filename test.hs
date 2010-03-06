@@ -10,19 +10,17 @@ module Main where
 import System.IO ( IO )
 
 -- from concurrent-extra:
-import qualified Control.Concurrent.Event.Test         as Event         ( tests )
-import qualified Control.Concurrent.Lock.Test          as Lock          ( tests )
-import qualified Control.Concurrent.RLock.Test         as RLock         ( tests )
-import qualified Control.Concurrent.Broadcast.Test     as Broadcast     ( tests )
-import qualified Control.Concurrent.ReadWriteLock.Test as RWLock        ( tests )
-import qualified Control.Concurrent.ReadWriteVar.Test  as RWVar         ( tests )
-import qualified Control.Concurrent.Thread.Test        as Thread        ( tests )
-import qualified Control.Concurrent.STM.Event.Test     as STM_Event     ( tests )
-import qualified Control.Concurrent.STM.Broadcast.Test as STM_Broadcast ( tests )
-import qualified Control.Concurrent.Timeout.Test       as Timeout       ( tests )
+import qualified Control.Concurrent.Event.Test         as Event     ( tests )
+import qualified Control.Concurrent.Lock.Test          as Lock      ( tests )
+import qualified Control.Concurrent.RLock.Test         as RLock     ( tests )
+import qualified Control.Concurrent.Broadcast.Test     as Broadcast ( tests )
+import qualified Control.Concurrent.ReadWriteLock.Test as RWLock    ( tests )
+import qualified Control.Concurrent.ReadWriteVar.Test  as RWVar     ( tests )
+import qualified Control.Concurrent.Thread.Test        as Thread    ( tests )
+import qualified Control.Concurrent.Timeout.Test       as Timeout   ( tests )
 
 -- from test-framework:
-import Test.Framework  ( Test, defaultMain, testGroup )
+import Test.Framework ( Test, defaultMain, testGroup )
 
 
 -------------------------------------------------------------------------------
@@ -41,10 +39,6 @@ tests = [ testGroup "Pessimistic locking"
           , testGroup "ReadWriteLock" RWLock.tests
           , testGroup "ReadWriteVar"  RWVar.tests
           , testGroup "Thread"        Thread.tests
-          ]
-        , testGroup "STM"
-          [ testGroup "Event"     STM_Event.tests
-          , testGroup "Broadcast" STM_Broadcast.tests
           ]
         , testGroup "Timeout" Timeout.tests
         ]
