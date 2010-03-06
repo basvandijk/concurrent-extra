@@ -51,9 +51,7 @@ tests = [ testCase "wait"           test_wait
         ]
 
 test_wait ∷ Assertion
-test_wait = assert $ fmap (maybe False id)
-                   $ timeout (10 ⋅ a_moment)
-                   $ do
+test_wait = assert $ fmap (maybe False id) $ timeout (10 ⋅ a_moment) $ do
   r ← newIORef False
   tid ← Thread.forkIO $ do
     threadDelay $ 2 ⋅ a_moment
@@ -70,9 +68,7 @@ test_waitTimeout = assert $ within (10 ⋅ a_moment) $ do
   Lock.release l
 
 test_isRunning ∷ Assertion
-test_isRunning = assert $ fmap (maybe False id)
-                        $ timeout (10 ⋅ a_moment)
-                        $ do
+test_isRunning = assert $ fmap (maybe False id) $ timeout (10 ⋅ a_moment) $ do
   l ← Lock.newAcquired
   tid ← Thread.forkIO $ Lock.acquire l
   r ← Thread.isRunning tid
