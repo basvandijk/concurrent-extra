@@ -133,9 +133,8 @@ GHC note: the new thread inherits the blocked state of the parent (see
 'Control.Exception.block').
 
 The newly created thread has an exception handler that discards the exceptions
-@BlockedOnDeadMVar@, @BlockedIndefinitely@, and @ThreadKilled@, and passes all
-other exceptions to the uncaught exception handler (see
-@setUncaughtExceptionHandler@).
+@BlockedOnDeadMVar@, @BlockedIndefinitely@, and @ThreadKilled@. All other
+exceptions are recorded in the 'ThreadId' and can be retrieved using 'wait'.
 -}
 forkIO ∷ IO α → IO (ThreadId α)
 forkIO = fork Conc.forkIO
