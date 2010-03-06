@@ -36,17 +36,21 @@
 
 module Control.Concurrent.RLock
     ( RLock
+
       -- * Creating reentrant locks
     , new
     , newAcquired
+
       -- * Locking and unlocking
     , acquire
     , tryAcquire
     , release
+
       -- * Convenience functions
     , with
     , tryWith
     , wait
+
       -- * Querying reentrant locks
     , State
     , state
@@ -101,17 +105,22 @@ newtype RLock = RLock {un ∷ MVar (State, Lock)}
 
 * 'Nothing' indicates an \"unlocked\" state.
 
-* @'Just' (tid, n)@ indicates a \"locked\" state where the thread identified by @tid@
-acquired the lock @n@ times.
+* @'Just' (tid, n)@ indicates a \"locked\" state where the thread identified by
+@tid@ acquired the lock @n@ times.
 -}
 type State = Maybe (ThreadId, Integer)
+
+
+--------------------------------------------------------------------------------
+-- * Creating reentrant locks
+--------------------------------------------------------------------------------
 
 -- | Create a reentrant lock in the \"unlocked\" state.
 new ∷ IO RLock
 new = do lock ← Lock.new
          RLock <$> newMVar (Nothing, lock)
 
-{-| 
+{-|
 Create a reentrant lock in the \"locked\" state (with the current thread as
 owner and an acquired count of 1).
 -}
@@ -120,7 +129,12 @@ newAcquired = do myTID ← myThreadId
                  lock ← Lock.newAcquired
                  RLock <$> newMVar (Just (myTID, 1), lock)
 
-{-| 
+
+--------------------------------------------------------------------------------
+-- * Locking and unlocking
+--------------------------------------------------------------------------------
+
+{-|
 Acquires the 'RLock'. Blocks if another thread has acquired the 'RLock'.
 
 @acquire@ behaves as follows:
@@ -162,7 +176,7 @@ acquire (RLock mv) = do
                                               acq
           in acq
 
-{-| 
+{-|
 A non-blocking 'acquire'.
 
 * When the state is \"unlocked\" @tryAcquire@ changes the state to \"locked\"
@@ -215,6 +229,11 @@ release (RLock mv) = do
                              in putMVar mv (Just (tid, pn), lock)
         | otherwise → err "Calling thread does not own the RLock!"
 
+
+--------------------------------------------------------------------------------
+-- * Convenience functions
+--------------------------------------------------------------------------------
+
 {-| A convenience function which first acquires the lock and then
 performs the computation. When the computation terminates, whether
 normally or by raising an exception, the lock is released.
@@ -224,7 +243,7 @@ Note that: @with = 'liftA2' 'bracket_' 'acquire' 'release'@.
 with ∷ RLock → IO α → IO α
 with = liftA2 bracket_ acquire release
 
-{-| 
+{-|
 A non-blocking 'with'. @tryWith@ is a convenience function which first tries to
 acquire the lock. If that fails, 'Nothing' is returned. If it succeeds, the
 computation is performed. When the computation terminates, whether normally or
@@ -253,7 +272,12 @@ Note that @wait@ is just a convenience function defined as:
 wait ∷ RLock → IO ()
 wait l = block $ acquire l >> release l
 
-{-| 
+
+--------------------------------------------------------------------------------
+-- * Querying reentrant locks
+--------------------------------------------------------------------------------
+
+{-|
 Determine the state of the reentrant lock.
 
 Note that this is only a snapshot of the state. By the time a program reacts on

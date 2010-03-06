@@ -31,17 +31,21 @@
 
 module Control.Concurrent.Lock
     ( Lock
+
       -- * Creating locks
     , new
     , newAcquired
+
       -- * Locking and unlocking
     , acquire
     , tryAcquire
     , release
+
       -- * Convenience functions
     , with
     , tryWith
     , wait
+
       -- * Querying locks
     , locked
     ) where
@@ -79,6 +83,11 @@ import Data.Function.Unicode   ( (∘) )
 -- | A lock is in one of two states: \"locked\" or \"unlocked\".
 newtype Lock = Lock {un ∷ MVar ()} deriving (Eq, Typeable)
 
+
+--------------------------------------------------------------------------------
+-- Creating locks
+--------------------------------------------------------------------------------
+
 -- | Create a lock in the \"unlocked\" state.
 new ∷ IO Lock
 new = Lock <$> newMVar ()
@@ -87,7 +96,12 @@ new = Lock <$> newMVar ()
 newAcquired ∷ IO Lock
 newAcquired = Lock <$> newEmptyMVar
 
-{-| 
+
+--------------------------------------------------------------------------------
+-- Locking and unlocking
+--------------------------------------------------------------------------------
+
+{-|
 Acquires the 'Lock'. Blocks if another thread has acquired the 'Lock'.
 
 @acquire@ behaves as follows:
@@ -95,7 +109,7 @@ Acquires the 'Lock'. Blocks if another thread has acquired the 'Lock'.
 * When the state is \"unlocked\" @acquire@ changes the state to \"locked\".
 
 * When the state is \"locked\" @acquire@ /blocks/ until a call to 'release' in
-another thread wakes the calling thread. Upon awakening it will change to state
+another thread wakes the calling thread. Upon awakening it will change the state
 to \"locked\".
 
 There are two further important properties of @acquire@:
@@ -112,7 +126,7 @@ wake-up order is undefined.)
 acquire ∷ Lock → IO ()
 acquire = takeMVar ∘ un
 
-{-| 
+{-|
 A non-blocking 'acquire'.
 
 * When the state is \"unlocked\" @tryAcquire@ changes the state to \"locked\"
@@ -124,7 +138,7 @@ returns 'False'.
 tryAcquire ∷ Lock → IO Bool
 tryAcquire = fmap isJust ∘ tryTakeMVar ∘ un
 
-{-| 
+{-|
 @release@ changes the state to \"unlocked\" and returns immediately.
 
 Note that it is an error to release a lock in the \"unlocked\" state!
@@ -137,7 +151,12 @@ release (Lock mv) = do
   b ← tryPutMVar mv ()
   when (not b) $ error "Control.Concurrent.Lock.release: Can't release unlocked Lock!"
 
-{-| 
+
+--------------------------------------------------------------------------------
+-- Convenience functions
+--------------------------------------------------------------------------------
+
+{-|
 A convenience function which first acquires the lock and then performs the
 computation. When the computation terminates, whether normally or by raising an
 exception, the lock is released.
@@ -147,7 +166,7 @@ Note that: @with = 'liftA2' 'bracket_' 'acquire' 'release'@.
 with ∷ Lock → IO a → IO a
 with = liftA2 bracket_ acquire release
 
-{-| 
+{-|
 A non-blocking 'with'. @tryWith@ is a convenience function which first tries to
 acquire the lock. If that fails, 'Nothing' is returned. If it succeeds, the
 computation is performed. When the computation terminates, whether normally or
@@ -176,7 +195,12 @@ Note that @wait@ is just a convenience function defined as:
 wait ∷ Lock → IO ()
 wait l = block $ acquire l >> release l
 
-{-| 
+
+--------------------------------------------------------------------------------
+-- Querying locks
+--------------------------------------------------------------------------------
+
+{-|
 Determines if the lock is in the \"locked\" state.
 
 Note that this is only a snapshot of the state. By the time a program reacts
