@@ -45,6 +45,7 @@ module Control.Concurrent.ReadWriteLock
   , acquireRead
   , releaseRead
   , withRead
+  , waitRead
     -- **Non-blocking
   , tryAcquireRead
   , tryWithRead
@@ -54,6 +55,7 @@ module Control.Concurrent.ReadWriteLock
   , acquireWrite
   , releaseWrite
   , withWrite
+  , waitWrite
     -- **Non-blocking
   , tryAcquireWrite
   , tryWithWrite
@@ -228,6 +230,21 @@ tryWithRead l a = block $ do
     then Just <$> a `finally` releaseRead l
     else return Nothing
 
+{-|
+* When the state is \"write\", @waitRead@ /blocks/ until a call to
+'releaseWrite' in another thread changes the state to \"free\".
+
+* When the state is \"free\" or \"read\" @waitRead@ returns immediately.
+
+@waitRead@ does not alter the state of the lock.
+
+Note that @waitRead@ is just a convenience function defined as:
+
+@waitRead l = 'block' '$' 'acquireRead' l '>>' 'releaseRead' l@
+-}
+waitRead ∷ RWLock → IO ()
+waitRead l = block $ acquireRead l >> releaseRead l
+
 
 -------------------------------------------------------------------------------
 -- *Write access
@@ -312,6 +329,21 @@ tryWithWrite l a = block $ do
   if acquired
     then Just <$> a `finally` releaseWrite l
     else return Nothing
+
+{-|
+* When the state is \"write\" or \"read\" @waitWrite@ /blocks/ until a call to
+'releaseWrite' or 'releaseRead' in another thread changes the state to \"free\".
+
+* When the state is \"free\" @waitWrite@ returns immediately.
+
+@waitWrite@ does not alter the state of the lock.
+
+Note that @waitWrite@ is just a convenience function defined as:
+
+@waitWrite l = 'block' '$' 'acquireWrite' l '>>' 'releaseWrite' l@
+-}
+waitWrite ∷ RWLock → IO ()
+waitWrite l = block $ acquireWrite l >> releaseWrite l
 
 moduleName ∷ String
 moduleName = "Control.Concurrent.ReadWriteLock"
