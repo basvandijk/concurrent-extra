@@ -9,9 +9,9 @@
 --            , Roel van Dijk <vandijk.roel@gmail.com>
 --
 -- A Broadcast variable is a mechanism for communication between
--- threads. Multiple reader threads can wait until a broadcaster thread writes a
--- signal. The readers block until the signal is received. When the broadcaster
--- sends the signal all readers are woken.
+-- threads. Multiple listening threads can wait until a broadcaster thread
+-- broadcasts a value. The listeners block until the value is received. When the
+-- broadcaster broadcasts the value all listeners are woken.
 --
 -- All functions are /exception safe/. Throwing asynchronous exceptions will not
 -- compromise the internal state of a 'Broadcast' variable.
@@ -27,13 +27,20 @@
 
 module Control.Concurrent.Broadcast
   ( Broadcast
+
+    -- * Creating broadcast variables
   , new
-  , newWritten
-  , read
-  , tryRead
-  , readTimeout
-  , write
-  , clear
+  , newBroadcasting
+
+    -- * Listening to broadcasts
+  , listen
+  , tryListen
+  , listenTimeout
+
+    -- * Broadcasting
+  , broadcast
+  , signal
+  , silence
   ) where
 
 
@@ -43,18 +50,17 @@ module Control.Concurrent.Broadcast
 
 -- from base:
 import Control.Applicative     ( (<$>) )
-import Control.Arrow           ( first )
-import Control.Monad           ( (>>=), (>>), return, fmap, forM_, fail )
+import Control.Monad           ( (>>=), (>>), return, fmap, forM_, fail, when )
 import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , takeMVar, putMVar, readMVar, modifyMVar_
                                )
 import Control.Exception       ( block, unblock )
 import Data.Eq                 ( Eq )
+import Data.Either             ( Either(Left ,Right), either )
 import Data.Function           ( ($), const )
 import Data.List               ( delete, length )
-import Data.Maybe              ( Maybe(Nothing, Just) )
+import Data.Maybe              ( Maybe(Nothing, Just), isNothing )
 import Data.Ord                ( Ord, max )
-import Data.Tuple              ( fst )
 import Data.Typeable           ( Typeable )
 import Prelude                 ( Integer, fromInteger, seq )
 import System.IO               ( IO )
@@ -66,95 +72,126 @@ import Data.Function.Unicode   ( (∘) )
 import Utils                      ( purelyModifyMVar )
 import Control.Concurrent.Timeout ( timeout )
 
+
 -------------------------------------------------------------------------------
 -- Broadcast
 -------------------------------------------------------------------------------
 
--- | A broadcast variable. It can be thought of as a box, which may be empty of
--- full.
-newtype Broadcast α = Broadcast {unBroadcast ∷ MVar (Maybe α, [MVar α])}
+{-|
+A broadcast variable is in one of the two states:
+
+* \"Silent\": @'listen'ing@ to the broadcast will block until a value is
+@'broadcast'ed@.
+
+* \"Broadcasting @x@\": @'listen'ing@ to the broadcast will return @x@ without
+blocking.
+-}
+newtype Broadcast α = Broadcast {unBroadcast ∷ MVar (Either [MVar α] α)}
     deriving (Eq, Typeable)
 
--- | Create a new empty 'Broadcast' variable.
+-- | @new@ creates a broadcast variable in the \"silent\" state.
 new ∷ IO (Broadcast α)
-new = Broadcast <$> newMVar (Nothing, [])
+new = Broadcast <$> newMVar (Left [])
 
--- | Create a new 'Broadcast' variable containing an initial value.
-newWritten ∷ α → IO (Broadcast α)
-newWritten x = Broadcast <$> newMVar (Just x, [])
+-- | @newBroadcasting x@ creates a broadcast variable in the \"broadcasting
+-- @x@\" state.
+newBroadcasting ∷ α → IO (Broadcast α)
+newBroadcasting x = Broadcast <$> newMVar (Right x)
 
-{-| Read the value of a 'Broadcast' variable.
+{-|
+Listen to a broadcast.
 
-If the 'Broadcast' variable contains a value it will be returned immediately,
-otherwise it will block until another thread 'write's a value to the 'Broadcast'
-variable.
+* If the broadcast variable is \"broadcasting @x@\", @listen@ will return @x@
+immediately.
+
+* If the broadcast variable is \"silent\", @listen@ will block until another
+thread @'broadcast's@ a value to the broadcast variable.
 -}
-read ∷ Broadcast α → IO α
-read (Broadcast mv) = block $ do
-  t@(mx, ls) ← takeMVar mv
+listen ∷ Broadcast α → IO α
+listen (Broadcast mv) = block $ do
+  mx ← takeMVar mv
   case mx of
-    Nothing → do l ← newEmptyMVar
-                 putMVar mv (mx, l:ls)
-                 takeMVar l
-    Just x  → do putMVar mv t
+    Left rs → do r ← newEmptyMVar
+                 putMVar mv $ Left (r:rs)
+                 takeMVar r
+    Right x → do putMVar mv mx
                  return x
 
-{-| Try to read the value of a 'Broadcast' variable; non blocking.
+{-|
+Try to listen to a broadcast variable; non blocking.
 
-Like 'read' but doesn't block. Returns 'Just' the contents of the 'Broadcast' if
-it wasn't empty, 'Nothing' otherwise.
+* If the broadcast variable is \"broadcasting @x@\", @tryListen@ will return
+'Just' @x@ immediately.
+
+* If the broadcast variable is \"silent\", @tryListen@ returns 'Nothing'
+immediately.
 -}
-tryRead ∷ Broadcast α → IO (Maybe α)
-tryRead = fmap fst ∘ readMVar ∘ unBroadcast
+tryListen ∷ Broadcast α → IO (Maybe α)
+tryListen = fmap (either (const Nothing) Just) ∘ readMVar ∘ unBroadcast
 
-{-| Read the value of a 'Broadcast' variable if it is available within a given
-amount of time.
+{-|
+Listen to a broadcast if it is available within a given amount of time.
 
-Like 'read', but with a timeout. A return value of 'Nothing' indicates a timeout
-occurred.
+Like 'listen', but with a timeout. A return value of 'Nothing' indicates a
+timeout occurred.
 
-The timeout is specified in microseconds.  A timeout of 0 &#x3bc;s will cause
-the function to return 'Nothing' without blocking in case the 'Broadcast' was
-empty. Negative timeouts are treated the same as a timeout of 0 &#x3bc;s.
+The timeout is specified in microseconds.
+
+If the broadcast variable is \"silent\" and a timeout of 0 &#x3bc;s is specified
+the function returns 'Nothing' without blocking.
+
+Negative timeouts are treated the same as a timeout of 0 &#x3bc;s.
 -}
-readTimeout ∷ Broadcast α → Integer → IO (Maybe α)
-readTimeout (Broadcast mv) time = block $ do
-  t@(mx, ls) ← takeMVar mv
+listenTimeout ∷ Broadcast α → Integer → IO (Maybe α)
+listenTimeout (Broadcast mv) time = block $ do
+  mx ← takeMVar mv
   case mx of
-    Nothing → do l ← newEmptyMVar
-                 putMVar mv (mx, l:ls)
-                 my ← unblock $ timeout (max time 0) (takeMVar l)
-                 case my of
-                   Nothing → do deleteReader l mv
-                                return my
-                   Just _  → return my
-    Just _  → do putMVar mv t
-                 return mx
+    Left rs → do r ← newEmptyMVar
+                 putMVar mv $ Left (r:rs)
+                 my ← unblock $ timeout (max time 0) (takeMVar r)
+                 when (isNothing my) $ deleteReader r
+                 return my
+    Right x  → do putMVar mv mx
+                  return $ Just x
+    where
+      deleteReader r = do mx ← takeMVar mv
+                          case mx of
+                            Left rs → do let rs' = delete r rs
+                                         length rs' `seq` putMVar mv (Left rs')
+                            Right _ → putMVar mv mx
 
-{-| Write a new value into a 'Broadcast' variable.
+{-|
+Broadcast a value.
 
-If the variable is empty any threads that are reading from the variable will be
-woken. If the variable is full its contents will simply be overwritten.
+@broadcast b x@ changes the state of the broadcast variable @b@ to
+\"broadcasting @x@\".
+
+If the broadcast variable was \"silent\" all threads that are @'listen'ing@ to
+the broadcast variable will be woken.
 -}
-write ∷ Broadcast α → α → IO ()
-write (Broadcast mv) x =
-    modifyMVar_ mv $ \(_, ls) → do
-      forM_ ls $ \l → putMVar l x
-      return (Just x, [])
+broadcast ∷ Broadcast α → α → IO ()
+broadcast (Broadcast mv) x = modifyMVar_ mv $ \mx -> do
+                               case mx of
+                                 Left rs → do forM_ rs $ \r → putMVar r x
+                                              return $ Right x
+                                 Right _ → return $ Right x
+{-|
+Signal a value before becoming \"silent\".
 
--- | Clear the contents of a 'Broadcast' variable.
-clear ∷ Broadcast α → IO ()
-clear (Broadcast mv) = purelyModifyMVar mv $ first $ const Nothing
+The state of the broadcast variable is changed to \"silent\" after all threads
+that are @'listen'ing@ to the broadcast are woken and resume with the signalled
+value.
+-}
+signal ∷ Broadcast α → α → IO ()
+signal (Broadcast mv) x = modifyMVar_ mv $ \mx -> do
+                            case mx of
+                              Left rs → do forM_ rs $ \r → putMVar r x
+                                           return $ Left []
+                              Right _ → return $ Left []
 
-
--------------------------------------------------------------------------------
-
-deleteReader ∷ MVar α → MVar (Maybe α, [MVar α]) → IO ()
-deleteReader l mv = do
-  (mx, ls) ← takeMVar mv
-  let ls' = delete l ls
-  length ls' `seq` putMVar mv (mx, ls')
+-- | Set a broadcast variable to the \"silent\" state.
+silence ∷ Broadcast α → IO ()
+silence (Broadcast mv) = purelyModifyMVar mv $ either Left $ const $ Left []
 
 
 -- The End ---------------------------------------------------------------------
-

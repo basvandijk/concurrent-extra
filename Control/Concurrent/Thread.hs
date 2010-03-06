@@ -83,7 +83,7 @@ import Data.Function.Unicode ( (∘) )
 -- from concurrent-extra:
 import           Control.Concurrent.Broadcast ( Broadcast )
 import qualified Control.Concurrent.Broadcast as Broadcast
-    ( new, write, read, tryRead, readTimeout )
+    ( new, broadcast, listen, tryListen, listenTimeout )
 
 import Utils ( void, ifM, throwInner )
 
@@ -166,9 +166,9 @@ by the function which does the actual forking.
 fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
 fork doFork a = do
   stop ← Broadcast.new
-  let writeToStop = Broadcast.write stop
-  tid ← ifM blocked (        doFork $ try          a  >>= writeToStop)
-                    (block $ doFork $ try (unblock a) >>= writeToStop)
+  let broadcastToStop = Broadcast.broadcast stop
+  tid ← ifM blocked (        doFork $ try          a  >>= broadcastToStop)
+                    (block $ doFork $ try (unblock a) >>= broadcastToStop)
   return $ ThreadId stop tid
 
 
@@ -185,7 +185,7 @@ Block until the given thread is terminated.
 caught.
 -}
 wait ∷ ThreadId α → IO (Either SomeException α)
-wait = Broadcast.read ∘ stopped
+wait = Broadcast.listen ∘ stopped
 
 -- | Like 'wait' but will ignore the value returned by the thread.
 wait_ ∷ ThreadId α → IO ()
@@ -215,7 +215,7 @@ the specified time.
 The timeout is specified in microseconds.
 -}
 waitTimeout ∷ ThreadId α → Integer → IO (Maybe (Either SomeException α))
-waitTimeout = Broadcast.readTimeout ∘ stopped
+waitTimeout = Broadcast.listenTimeout ∘ stopped
 
 -- | Like 'waitTimeout' but will ignore the value returned by the thread.
 -- Returns 'False' when a timeout occurred and 'True' otherwise.
@@ -250,7 +250,7 @@ Notice that this observation is only a snapshot of a thread's state. By the time
 a program reacts on its result it may already be out of date.
 -}
 isRunning ∷ ThreadId α → IO Bool
-isRunning = fmap isNothing ∘ Broadcast.tryRead ∘ stopped
+isRunning = fmap isNothing ∘ Broadcast.tryListen ∘ stopped
 
 
 -------------------------------------------------------------------------------
