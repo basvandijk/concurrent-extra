@@ -67,12 +67,10 @@ module Control.Concurrent.ReadWriteLock
 -------------------------------------------------------------------------------
 
 -- from base
-import Control.Applicative     ( liftA2 )
+import Control.Applicative     ( liftA2, liftA3 )
 import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar, swapMVar )
 import Control.Exception       ( block, bracket_, finally )
-import Control.Monad           ( return, (>>=), return, fail, (>>)
-                               , when, liftM3
-                               )
+import Control.Monad           ( return, (>>=), return, fail, (>>), when )
 import Data.Bool               ( Bool(False, True) )
 import Data.Char               ( String )
 import Data.Eq                 ( Eq, (==) )
@@ -129,21 +127,21 @@ data State = Free | Read Int | Write
 -- | Create a new 'RWLock' in the \"free\" state; either read or write access
 -- can be acquired without blocking.
 new ∷ IO RWLock
-new = liftM3 RWLock (newMVar Free)
+new = liftA3 RWLock (newMVar Free)
                     Lock.new
                     Lock.new
 
 -- | Create a new 'RWLock' in the \"read\" state; only read can be acquired
 -- without blocking.
 newAcquiredRead ∷ IO RWLock
-newAcquiredRead = liftM3 RWLock (newMVar $ Read 1)
+newAcquiredRead = liftA3 RWLock (newMVar $ Read 1)
                                 Lock.newAcquired
                                 Lock.new
 
 -- | Create a new 'RWLock' in the \"write\" state; either acquiring read or
 -- write will block.
 newAcquiredWrite ∷ IO RWLock
-newAcquiredWrite = liftM3 RWLock (newMVar Write)
+newAcquiredWrite = liftA3 RWLock (newMVar Write)
                                  Lock.new
                                  Lock.newAcquired
 

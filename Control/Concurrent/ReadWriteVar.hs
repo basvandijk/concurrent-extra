@@ -62,7 +62,8 @@ module Control.Concurrent.ReadWriteVar
 -------------------------------------------------------------------------------
 
 -- from base
-import Control.Monad           ( (>>=), liftM2 )
+import Control.Applicative     ( liftA2 )
+import Control.Monad           ( (>>=) )
 import Data.Bool               ( Bool(..) )
 import Data.Eq                 ( Eq, (==) )
 import Data.Function           ( ($), on )
@@ -100,7 +101,7 @@ instance Eq (RWVar α) where
 
 -- | Create a new 'RWVar'.
 new ∷ α → IO (RWVar α)
-new = liftM2 RWVar RWLock.new ∘ newIORef
+new = liftA2 RWVar RWLock.new ∘ newIORef
 
 {-| Execute an action that operates on the contents of the 'RWVar'.
 
