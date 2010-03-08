@@ -37,9 +37,9 @@ description:
   * @Thread@: Threads extended with the ability to wait for their
     termination.
   .
-  * @delay@: Arbitrarily long thread delays.
+  * @Thread.Delay@: Arbitrarily long thread delays.
   .
-  * @timeout@: Wait arbitrarily long for an IO computation to finish.
+  * @Timeout@: Wait arbitrarily long for an IO computation to finish.
   .
   Please consult the API documentation of the individual modules for
   more detailed information.

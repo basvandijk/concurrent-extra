@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
 -------------------------------------------------------------------------------
 -- |
@@ -62,6 +62,9 @@ import Control.Exception   ( Exception, SomeException
                            , AsyncException(ThreadKilled)
                            , try, blocked, block, unblock
                            )
+#ifdef __HADDOCK__
+import Control.Exception ( BlockedIndefinitelyOnMVar, BlockedIndefinitelyOnSTM )
+#endif
 import Control.Monad       ( return, (>>=), fail, (>>), fmap )
 import Data.Bool           ( Bool(..) )
 import Data.Eq             ( Eq, (==) )
@@ -133,8 +136,9 @@ GHC note: the new thread inherits the blocked state of the parent (see
 'Control.Exception.block').
 
 The newly created thread has an exception handler that discards the exceptions
-@BlockedOnDeadMVar@, @BlockedIndefinitely@, and @ThreadKilled@. All other
-exceptions are recorded in the 'ThreadId' and can be retrieved using 'wait'.
+'BlockedIndefinitelyOnMVar', 'BlockedIndefinitelyOnSTM', and 'ThreadKilled'. All
+other exceptions are recorded in the 'ThreadId' and can be retrieved using
+'wait'.
 -}
 forkIO ∷ IO α → IO (ThreadId α)
 forkIO = fork Conc.forkIO
