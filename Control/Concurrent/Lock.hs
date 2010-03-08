@@ -63,10 +63,11 @@ import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , isEmptyMVar
                                )
 import Control.Exception       ( block, bracket_, finally )
-import Control.Monad           ( Monad, return, (>>=), (>>), fail, when, fmap )
+import Control.Monad           ( Monad, return, (>>=), (>>), fail, when )
 import Data.Bool               ( Bool, not )
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
+import Data.Functor            ( fmap  )
 import Data.Maybe              ( Maybe(Nothing, Just), isJust )
 import Data.Typeable           ( Typeable )
 import Prelude                 ( error )

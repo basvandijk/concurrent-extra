@@ -65,11 +65,12 @@ import Control.Exception   ( Exception, SomeException
 #ifdef __HADDOCK__
 import Control.Exception ( BlockedIndefinitelyOnMVar, BlockedIndefinitelyOnSTM )
 #endif
-import Control.Monad       ( return, (>>=), fail, (>>), fmap )
+import Control.Monad       ( return, (>>=), fail, (>>) )
 import Data.Bool           ( Bool(..) )
 import Data.Eq             ( Eq, (==) )
 import Data.Either         ( Either(..), either )
 import Data.Function       ( ($), on )
+import Data.Functor        ( fmap  )
 import Data.Maybe          ( Maybe(..), maybe, isNothing, isJust )
 import Data.Ord            ( Ord, compare )
 import Data.Typeable       ( Typeable )

@@ -12,9 +12,10 @@ module Control.Concurrent.Thread.Test ( tests ) where
 -- from base:
 import Control.Concurrent ( threadDelay )
 import Control.Exception  ( unblock, block, blocked )
-import Control.Monad      ( return, (>>=), fail, (>>), fmap )
+import Control.Monad      ( return, (>>=), fail, (>>) )
 import Data.Bool          ( Bool(False, True), not )
 import Data.Function      ( ($), id )
+import Data.Functor       ( fmap  )
 import Data.IORef         ( newIORef, readIORef, writeIORef )
 import Data.Maybe         ( maybe )
 import Prelude            ( fromInteger, toInteger )

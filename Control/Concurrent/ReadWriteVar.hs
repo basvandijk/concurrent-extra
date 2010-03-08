@@ -62,10 +62,11 @@ module Control.Concurrent.ReadWriteVar
 -------------------------------------------------------------------------------
 
 -- from base
-import Control.Monad           ( (>>=), fmap, liftM2 )
+import Control.Monad           ( (>>=), liftM2 )
 import Data.Bool               ( Bool(..) )
 import Data.Eq                 ( Eq, (==) )
 import Data.Function           ( ($), on )
+import Data.Functor            ( fmap  )
 import Data.Maybe              ( Maybe(..), isJust )
 import Data.IORef              ( IORef, newIORef, readIORef )
 import Data.Typeable           ( Typeable )

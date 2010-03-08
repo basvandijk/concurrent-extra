@@ -55,9 +55,9 @@ module Control.Concurrent.Event
 
 -- from base
 import Control.Applicative     ( (<$>) )
-import Control.Monad           ( fmap  )
 import Data.Bool               ( Bool(..) )
 import Data.Eq                 ( Eq )
+import Data.Functor            ( fmap  )
 import Data.Maybe              ( isJust )
 import Data.Typeable           ( Typeable )
 import Prelude                 ( Integer )

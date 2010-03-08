@@ -11,9 +11,10 @@ module Control.Concurrent.Lock.Test ( tests ) where
 
 -- from base:
 import Control.Concurrent ( forkIO )
-import Control.Monad      ( (>>=), fail, (>>), fmap )
+import Control.Monad      ( (>>=), fail, (>>) )
 import Data.Bool          ( not )
 import Data.Function      ( ($) )
+import Data.Functor       ( fmap  )
 import Prelude            ( fromInteger )
 
 -- from base-unicode-symbols:

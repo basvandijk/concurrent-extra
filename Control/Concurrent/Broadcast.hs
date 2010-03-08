@@ -50,7 +50,7 @@ module Control.Concurrent.Broadcast
 
 -- from base:
 import Control.Applicative     ( (<$>) )
-import Control.Monad           ( (>>=), (>>), return, fmap, forM_, fail, when )
+import Control.Monad           ( (>>=), (>>), return, forM_, fail, when )
 import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , takeMVar, putMVar, readMVar, modifyMVar_
                                )
@@ -58,6 +58,7 @@ import Control.Exception       ( block, unblock )
 import Data.Eq                 ( Eq )
 import Data.Either             ( Either(Left ,Right), either )
 import Data.Function           ( ($), const )
+import Data.Functor            ( fmap )
 import Data.List               ( delete, length )
 import Data.Maybe              ( Maybe(Nothing, Just), isNothing )
 import Data.Ord                ( Ord, max )
