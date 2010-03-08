@@ -8,13 +8,13 @@
 -- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>
 --            , Roel van Dijk <vandijk.roel@gmail.com>
 --
--- A Broadcast variable is a mechanism for communication between
--- threads. Multiple listening threads can wait until a broadcaster thread
--- broadcasts a value. The listeners block until the value is received. When the
--- broadcaster broadcasts the value all listeners are woken.
+-- A 'Broadcast' is a mechanism for communication between threads. Multiple
+-- @'listen'ing@ threads can wait until a broadcaster thread @'broadcast's@ a
+-- value. The listeners block until the value is received. When the broadcaster
+-- broadcast the value all listeners are woken.
 --
 -- All functions are /exception safe/. Throwing asynchronous exceptions will not
--- compromise the internal state of a 'Broadcast' variable.
+-- compromise the internal state of a broadcast.
 --
 -- This module is designed to be imported qualified. We suggest importing it
 -- like:
@@ -28,7 +28,7 @@
 module Control.Concurrent.Broadcast
   ( Broadcast
 
-    -- * Creating broadcast variables
+    -- * Creating broadcasts
   , new
   , newBroadcasting
 
@@ -78,7 +78,7 @@ import Control.Concurrent.Timeout ( timeout )
 -------------------------------------------------------------------------------
 
 {-|
-A broadcast variable is in one of the two states:
+A broadcast is in one of the two states:
 
 * \"Silent\": @'listen'ing@ to the broadcast will block until a value is
 @'broadcast'ed@.
@@ -89,23 +89,22 @@ blocking.
 newtype Broadcast α = Broadcast {unBroadcast ∷ MVar (Either [MVar α] α)}
     deriving (Eq, Typeable)
 
--- | @new@ creates a broadcast variable in the \"silent\" state.
+-- | @new@ creates a broadcast in the \"silent\" state.
 new ∷ IO (Broadcast α)
 new = Broadcast <$> newMVar (Left [])
 
--- | @newBroadcasting x@ creates a broadcast variable in the \"broadcasting
--- @x@\" state.
+-- | @newBroadcasting x@ creates a broadcast in the \"broadcasting @x@\" state.
 newBroadcasting ∷ α → IO (Broadcast α)
 newBroadcasting x = Broadcast <$> newMVar (Right x)
 
 {-|
 Listen to a broadcast.
 
-* If the broadcast variable is \"broadcasting @x@\", @listen@ will return @x@
+* If the broadcast is \"broadcasting @x@\", @listen@ will return @x@
 immediately.
 
-* If the broadcast variable is \"silent\", @listen@ will block until another
-thread @'broadcast's@ a value to the broadcast variable.
+* If the broadcast is \"silent\", @listen@ will block until another thread
+@'broadcast's@ a value to the broadcast.
 -}
 listen ∷ Broadcast α → IO α
 listen (Broadcast mv) = block $ do
@@ -118,13 +117,12 @@ listen (Broadcast mv) = block $ do
                  return x
 
 {-|
-Try to listen to a broadcast variable; non blocking.
+Try to listen to a broadcast; non blocking.
 
-* If the broadcast variable is \"broadcasting @x@\", @tryListen@ will return
-'Just' @x@ immediately.
-
-* If the broadcast variable is \"silent\", @tryListen@ returns 'Nothing'
+* If the broadcast is \"broadcasting @x@\", @tryListen@ will return 'Just' @x@
 immediately.
+
+* If the broadcast is \"silent\", @tryListen@ returns 'Nothing' immediately.
 -}
 tryListen ∷ Broadcast α → IO (Maybe α)
 tryListen = fmap (either (const Nothing) Just) ∘ readMVar ∘ unBroadcast
@@ -137,8 +135,8 @@ timeout occurred.
 
 The timeout is specified in microseconds.
 
-If the broadcast variable is \"silent\" and a timeout of 0 &#x3bc;s is specified
-the function returns 'Nothing' without blocking.
+If the broadcast is \"silent\" and a timeout of 0 &#x3bc;s is specified the
+function returns 'Nothing' without blocking.
 
 Negative timeouts are treated the same as a timeout of 0 &#x3bc;s.
 -}
@@ -163,11 +161,10 @@ listenTimeout (Broadcast mv) time = block $ do
 {-|
 Broadcast a value.
 
-@broadcast b x@ changes the state of the broadcast variable @b@ to
-\"broadcasting @x@\".
+@broadcast b x@ changes the state of the broadcast @b@ to \"broadcasting @x@\".
 
-If the broadcast variable was \"silent\" all threads that are @'listen'ing@ to
-the broadcast variable will be woken.
+If the broadcast was \"silent\" all threads that are @'listen'ing@ to the
+broadcast will be woken.
 -}
 broadcast ∷ Broadcast α → α → IO ()
 broadcast (Broadcast mv) x = modifyMVar_ mv $ \mx -> do
@@ -178,9 +175,8 @@ broadcast (Broadcast mv) x = modifyMVar_ mv $ \mx -> do
 {-|
 Signal a value before becoming \"silent\".
 
-The state of the broadcast variable is changed to \"silent\" after all threads
-that are @'listen'ing@ to the broadcast are woken and resume with the signalled
-value.
+The state of the broadcast is changed to \"silent\" after all threads that are
+@'listen'ing@ to the broadcast are woken and resume with the signalled value.
 -}
 signal ∷ Broadcast α → α → IO ()
 signal (Broadcast mv) x = modifyMVar_ mv $ \mx -> do
@@ -189,7 +185,7 @@ signal (Broadcast mv) x = modifyMVar_ mv $ \mx -> do
                                            return $ Left []
                               Right _ → return $ Left []
 
--- | Set a broadcast variable to the \"silent\" state.
+-- | Set a broadcast to the \"silent\" state.
 silence ∷ Broadcast α → IO ()
 silence (Broadcast mv) = purelyModifyMVar mv $ either Left $ const $ Left []
 

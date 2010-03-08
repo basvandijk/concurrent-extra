@@ -32,7 +32,7 @@ description:
   .
   * @ReadWriteVar@: Concurrent read, sequential write variables.
   .
-  Besides these synchronisation primitives the package provides:
+  Besides these synchronisation primitives the package also provides:
   .
   * @Thread@: Threads extended with the ability to wait for their
     termination.
