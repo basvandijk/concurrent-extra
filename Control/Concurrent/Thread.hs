@@ -57,26 +57,25 @@ module Control.Concurrent.Thread
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Applicative ( (<$>) )
-import Control.Exception   ( Exception, SomeException
-                           , AsyncException(ThreadKilled)
-                           , try, blocked, block, unblock
-                           )
+import Control.Exception ( Exception, SomeException
+                         , AsyncException(ThreadKilled)
+                         , try, blocked, block, unblock
+                         )
 #ifdef __HADDOCK__
 import Control.Exception ( BlockedIndefinitelyOnMVar, BlockedIndefinitelyOnSTM )
 #endif
-import Control.Monad       ( return, (>>=), fail, (>>) )
-import Data.Bool           ( Bool(..) )
-import Data.Eq             ( Eq, (==) )
-import Data.Either         ( Either(..), either )
-import Data.Function       ( ($), on )
-import Data.Functor        ( fmap  )
-import Data.Maybe          ( Maybe(..), maybe, isNothing, isJust )
-import Data.Ord            ( Ord, compare )
-import Data.Typeable       ( Typeable )
-import Prelude             ( Integer )
-import System.IO           ( IO )
-import Text.Show           ( Show, show )
+import Control.Monad     ( return, (>>=), fail, (>>) )
+import Data.Bool         ( Bool(..) )
+import Data.Eq           ( Eq, (==) )
+import Data.Either       ( Either(..), either )
+import Data.Function     ( ($), on )
+import Data.Functor      ( fmap, (<$>) )
+import Data.Maybe        ( Maybe(..), maybe, isNothing, isJust )
+import Data.Ord          ( Ord, compare )
+import Data.Typeable     ( Typeable )
+import Prelude           ( Integer )
+import System.IO         ( IO )
+import Text.Show         ( Show, show )
 
 import qualified Control.Concurrent as Conc
     ( ThreadId, forkIO, forkOS, throwTo )

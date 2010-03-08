@@ -56,7 +56,7 @@ module Control.Concurrent.Lock
 --------------------------------------------------------------------------------
 
 -- from base:
-import Control.Applicative     ( (<$>), liftA2 )
+import Control.Applicative     ( liftA2 )
 import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , takeMVar, tryTakeMVar
                                , tryPutMVar
@@ -67,7 +67,7 @@ import Control.Monad           ( Monad, return, (>>=), (>>), fail, when )
 import Data.Bool               ( Bool, not )
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
-import Data.Functor            ( fmap  )
+import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( Maybe(Nothing, Just), isJust )
 import Data.Typeable           ( Typeable )
 import Prelude                 ( error )

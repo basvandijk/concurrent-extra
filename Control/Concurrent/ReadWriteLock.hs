@@ -67,7 +67,7 @@ module Control.Concurrent.ReadWriteLock
 -------------------------------------------------------------------------------
 
 -- from base
-import Control.Applicative     ( (<$>), liftA2 )
+import Control.Applicative     ( liftA2 )
 import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar, swapMVar )
 import Control.Exception       ( block, bracket_, finally )
 import Control.Monad           ( return, (>>=), return, fail, (>>)
@@ -77,6 +77,7 @@ import Data.Bool               ( Bool(False, True) )
 import Data.Char               ( String )
 import Data.Eq                 ( Eq, (==) )
 import Data.Function           ( ($), on )
+import Data.Functor            ( (<$>) )
 import Data.Int                ( Int )
 import Data.Maybe              ( Maybe(Nothing, Just) )
 import Data.Typeable           ( Typeable )

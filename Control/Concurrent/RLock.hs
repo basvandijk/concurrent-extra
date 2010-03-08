@@ -62,7 +62,7 @@ module Control.Concurrent.RLock
 --------------------------------------------------------------------------------
 
 -- from base:
-import Control.Applicative     ( (<$>), liftA2 )
+import Control.Applicative     ( liftA2 )
 import Control.Concurrent      ( ThreadId, myThreadId )
 import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, readMVar, putMVar )
 import Control.Exception       ( block, bracket_, finally )
@@ -70,7 +70,7 @@ import Control.Monad           ( Monad, return, (>>=), fail, (>>) )
 import Data.Bool               ( Bool(False, True), otherwise )
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
-import Data.Functor            ( fmap  )
+import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( Maybe(Nothing, Just) )
 import Data.Tuple              ( fst )
 import Data.Typeable           ( Typeable )
