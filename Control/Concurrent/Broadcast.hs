@@ -9,9 +9,9 @@
 --            , Roel van Dijk <vandijk.roel@gmail.com>
 --
 -- A 'Broadcast' is a mechanism for communication between threads. Multiple
--- @'listen'ing@ threads can wait until a broadcaster thread @'broadcast's@ a
--- value. The listeners block until the value is received. When the broadcaster
--- broadcast the value all listeners are woken.
+-- @'listen'ers@ wait until a broadcaster @'broadcast's@ a value. The listeners
+-- block until the value is received. When the broadcaster broadcasts a value
+-- all listeners are woken.
 --
 -- All functions are /exception safe/. Throwing asynchronous exceptions will not
 -- compromise the internal state of a broadcast.
@@ -78,22 +78,22 @@ import Control.Concurrent.Timeout ( timeout )
 -------------------------------------------------------------------------------
 
 {-|
-A broadcast is in one of the two states:
+A broadcast is in one of two possible states:
 
 * \"Silent\": @'listen'ing@ to the broadcast will block until a value is
 @'broadcast'ed@.
 
-* \"Broadcasting @x@\": @'listen'ing@ to the broadcast will return @x@ without
-blocking.
+* \"Broadcasting @x@\": @'listen'ing@ to the broadcast will return the value @x@
+without blocking.
 -}
 newtype Broadcast α = Broadcast {unBroadcast ∷ MVar (Either [MVar α] α)}
     deriving (Eq, Typeable)
 
--- | @new@ creates a broadcast in the \"silent\" state.
+-- | @new@ Creates a broadcast in the \"silent\" state.
 new ∷ IO (Broadcast α)
 new = Broadcast <$> newMVar (Left [])
 
--- | @newBroadcasting x@ creates a broadcast in the \"broadcasting @x@\" state.
+-- | @newBroadcasting x@ Creates a broadcast in the \"broadcasting @x@\" state.
 newBroadcasting ∷ α → IO (Broadcast α)
 newBroadcasting x = Broadcast <$> newMVar (Right x)
 
@@ -173,15 +173,21 @@ broadcast (Broadcast mv) x = modifyMVar_ mv $ \mx -> do
                                               return $ Right x
                                  Right _ → return $ Right x
 {-|
-Signal a value before becoming \"silent\".
+Broadcast a value before becoming \"silent\".
 
 The state of the broadcast is changed to \"silent\" after all threads that are
 @'listen'ing@ to the broadcast are woken and resume with the signalled value.
+
+The semantics of signal are equivalent to the following definition:
+
+@
+  signal b x = 'block' $ 'broadcast' b x >> 'silence' b
+@
 -}
 signal ∷ Broadcast α → α → IO ()
-signal (Broadcast mv) x = modifyMVar_ mv $ \mx -> do
+signal (Broadcast mv) x = modifyMVar_ mv $ \mx → do
                             case mx of
-                              Left rs → do forM_ rs $ \r → putMVar r x
+                              Left ls → do forM_ ls (`putMVar` x)
                                            return $ Left []
                               Right _ → return $ Left []
 

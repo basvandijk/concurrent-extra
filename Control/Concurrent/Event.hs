@@ -1,4 +1,8 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE CPP
+           , DeriveDataTypeable
+           , NoImplicitPrelude
+           , UnicodeSyntax
+  #-}
 
 -------------------------------------------------------------------------------
 -- |
@@ -59,6 +63,9 @@ import Data.Eq                 ( Eq )
 import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( isJust )
 import Data.Typeable           ( Typeable )
+#ifdef __HADDOCK__
+import Control.Exception       ( block )
+#endif
 import Prelude                 ( Integer )
 import System.IO               ( IO )
 
@@ -154,7 +161,12 @@ set ev = Broadcast.broadcast (evBroadcast ev) ()
 Changes the state to \"cleared\" after all threads that where waiting for this
 event are woken. Threads that 'wait' after a @signal@ will block until the event
 is 'set' again.
--}
+
+The semantics of signal are equivalent to the following definition:
+
+@
+  signal e = 'block' $ 'set' e >> 'clear' e
+@-}
 signal ∷ Event → IO ()
 signal ev = Broadcast.signal (evBroadcast ev) ()
 

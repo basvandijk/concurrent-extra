@@ -16,15 +16,15 @@ description:
   The @concurrent-extra@ package offers among other things the
   following selection of synchronisation primitives:
   .
+  * @Broadcast@: Wake multiple threads by broadcasting a value.
+  .
+  * @Event@: Wake multiple threads by signalling an event.
+  .
   * @Lock@: Enforce exclusive access to a resource. Also known as a
     binary semaphore or mutex.
   .
   * @RLock@: A lock which can be acquired multiple times by the same
     thread. Also known as a reentrant mutex.
-  .
-  * @Broadcast@: Wake multiple threads by broadcasting a value.
-  .
-  * @Event@: Wake multiple threads by signalling an event.
   .
   * @ReadWriteLock@: Multiple-reader, single-writer locks. Used to
     protect shared resources which may be concurrently read, but only
