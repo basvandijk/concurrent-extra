@@ -11,6 +11,10 @@ module Control.Concurrent.Timeout.Test ( tests ) where
 
 -- from base:
 import Control.Concurrent ( )
+import Control.Exception  ( block )
+import Control.Monad      ( (>>=), fail, (>>) )
+import Data.Function      ( ($) )
+import Prelude            ( fromInteger, toInteger )
 
 -- from base-unicode-symbols:
 import Prelude.Unicode       ( (⋅) )

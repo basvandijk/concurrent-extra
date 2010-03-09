@@ -110,7 +110,8 @@ timeout n f
                    (\_ → return Nothing)
                    (bracket (forkIO (delay n >> throwTo pid ex))
                             (killThread)
-                            (\_ → fmap Just f))
+                            (\_ → fmap Just f)
+                   )
 
 
 -- The End ---------------------------------------------------------------------

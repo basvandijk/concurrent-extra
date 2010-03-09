@@ -63,8 +63,7 @@ test_wait = assert $ fmap (maybe False id) $ timeout (10 ⋅ a_moment) $ do
 test_waitTimeout ∷ Assertion
 test_waitTimeout = assert $ within (10 ⋅ a_moment) $ do
   l ← Lock.newAcquired
-  tid ← Thread.forkIO $ do
-    Lock.acquire l
+  tid ← Thread.forkIO $ Lock.acquire l
   _ ← Thread.waitTimeout tid (toInteger $ 5 ⋅ a_moment)
   Lock.release l
 
