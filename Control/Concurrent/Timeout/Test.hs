@@ -13,7 +13,7 @@ module Control.Concurrent.Timeout.Test ( tests ) where
 import Control.Concurrent ( )
 
 -- from base-unicode-symbols:
-import Prelude.Unicode       ( )
+import Prelude.Unicode       ( (⋅) )
 
 -- from concurrent-extra:
 import qualified Control.Concurrent.Lock   as Lock

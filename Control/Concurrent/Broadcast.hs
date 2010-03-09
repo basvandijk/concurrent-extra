@@ -53,7 +53,7 @@ import Control.Monad           ( (>>=), (>>), return, forM_, fail, when )
 import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , takeMVar, putMVar, readMVar, modifyMVar_
                                )
-import Control.Exception       ( block, unblock )
+import Control.Exception       ( block, onException )
 import Data.Eq                 ( Eq )
 import Data.Either             ( Either(Left ,Right), either )
 import Data.Function           ( ($), const )
@@ -110,9 +110,9 @@ listen ∷ Broadcast α → IO α
 listen (Broadcast mv) = block $ do
   mx ← takeMVar mv
   case mx of
-    Left rs → do r ← newEmptyMVar
-                 putMVar mv $ Left (r:rs)
-                 takeMVar r
+    Left ls → do l ← newEmptyMVar
+                 putMVar mv $ Left $ l:ls
+                 takeMVar l
     Right x → do putMVar mv mx
                  return x
 
@@ -144,18 +144,19 @@ listenTimeout ∷ Broadcast α → Integer → IO (Maybe α)
 listenTimeout (Broadcast mv) time = block $ do
   mx ← takeMVar mv
   case mx of
-    Left rs → do r ← newEmptyMVar
-                 putMVar mv $ Left (r:rs)
-                 my ← unblock $ timeout (max time 0) (takeMVar r)
-                 when (isNothing my) $ deleteReader r
+    Left ls → do l ← newEmptyMVar
+                 putMVar mv $ Left $ l:ls
+                 my ← timeout (max time 0) (takeMVar l)
+                      `onException` deleteReader l
+                 when (isNothing my) (deleteReader l)
                  return my
     Right x  → do putMVar mv mx
                   return $ Just x
     where
-      deleteReader r = do mx ← takeMVar mv
+      deleteReader l = do mx ← takeMVar mv
                           case mx of
-                            Left rs → do let rs' = delete r rs
-                                         length rs' `seq` putMVar mv (Left rs')
+                            Left ls → let ls' = delete l ls
+                                      in length ls' `seq` putMVar mv (Left ls')
                             Right _ → putMVar mv mx
 
 {-|
@@ -167,9 +168,9 @@ If the broadcast was \"silent\" all threads that are @'listen'ing@ to the
 broadcast will be woken.
 -}
 broadcast ∷ Broadcast α → α → IO ()
-broadcast (Broadcast mv) x = modifyMVar_ mv $ \mx -> do
+broadcast (Broadcast mv) x = modifyMVar_ mv $ \mx → do
                                case mx of
-                                 Left rs → do forM_ rs $ \r → putMVar r x
+                                 Left ls → do forM_ ls (`putMVar` x)
                                               return $ Right x
                                  Right _ → return $ Right x
 {-|
