@@ -49,7 +49,7 @@ module Control.Concurrent.Broadcast
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Monad           ( (>>=), (>>), return, forM_, fail, when )
+import Control.Monad           ( (>>=), (>>), return, fail, when )
 import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , takeMVar, putMVar, readMVar, modifyMVar_
                                )
@@ -58,6 +58,7 @@ import Data.Eq                 ( Eq )
 import Data.Either             ( Either(Left ,Right), either )
 import Data.Function           ( ($), const )
 import Data.Functor            ( fmap, (<$>) )
+import Data.Foldable           ( for_ )
 import Data.List               ( delete, length )
 import Data.Maybe              ( Maybe(Nothing, Just), isNothing )
 import Data.Ord                ( Ord, max )
@@ -168,11 +169,7 @@ If the broadcast was \"silent\" all threads that are @'listen'ing@ to the
 broadcast will be woken.
 -}
 broadcast ∷ Broadcast α → α → IO ()
-broadcast (Broadcast mv) x = modifyMVar_ mv $ \mx → do
-                               case mx of
-                                 Left ls → do forM_ ls (`putMVar` x)
-                                              return $ Right x
-                                 Right _ → return $ Right x
+
 {-|
 Broadcast a value before becoming \"silent\".
 
@@ -186,11 +183,19 @@ The semantics of signal are equivalent to the following definition:
 @
 -}
 signal ∷ Broadcast α → α → IO ()
-signal (Broadcast mv) x = modifyMVar_ mv $ \mx → do
-                            case mx of
-                              Left ls → do forM_ ls (`putMVar` x)
-                                           return $ Left []
-                              Right _ → return $ Left []
+
+broadcast b x = broadcastThen (Right x) b x
+signal    b x = broadcastThen (Left []) b x
+
+-- | Internally used function that performs the actual broadcast in 'broadcast'
+-- and 'signal' then changes to the given final state.
+broadcastThen ∷ Either [MVar α] α → Broadcast α → α → IO ()
+broadcastThen finalState (Broadcast mv) x =
+    modifyMVar_ mv $ \mx → do
+      case mx of
+        Left ls → do for_ ls (`putMVar` x)
+                     return finalState
+        Right _ → return finalState
 
 -- | Set a broadcast to the \"silent\" state.
 silence ∷ Broadcast α → IO ()
