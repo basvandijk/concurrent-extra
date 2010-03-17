@@ -67,16 +67,11 @@ flag nolib
   description: Don't build the library
   default:     False
 
-flag profile-fan-out-chan-space-usage
-  description: Build the FanOutChan profile space usage program
-  default:     False
-
 -------------------------------------------------------------------------------
 
 library
   build-depends: base                 >= 3     && < 4.3
                , base-unicode-symbols >= 0.1.1 && < 0.2
-               , containers           == 0.3.*
   exposed-modules: Control.Concurrent.Lock
                  , Control.Concurrent.RLock
                  , Control.Concurrent.Event
@@ -123,14 +118,3 @@ executable test-concurrent-extra
     ghc-options: -fhpc
 
 -------------------------------------------------------------------------------
-
-executable profile-fan-out-chan-space-usage
-  main-is: ./Control/Concurrent/FanOutChan/ProfileSpaceUsage.hs
-  other-modules: Control.Concurrent.FanOutChan
-
-  ghc-options: -Wall -prof
-
-  if flag(profile-fan-out-chan-space-usage)
-    buildable: True
-  else
-    buildable: False

@@ -11,7 +11,7 @@
 -- Channels with multiple independent read outs.
 --
 -- @
--- import           Control.Concurrent.FanOutChan ( FanOutChan, ReadOut )
+-- import Control.Concurrent.FanOutChan ( FanOutChan, ReadOut )
 -- import qualified Control.Concurrent.FanOutChan as FanOutChan ( ... )
 -- @
 -------------------------------------------------------------------------------
@@ -21,8 +21,16 @@ module Control.Concurrent.FanOutChan
     , new
     , ReadOut
     , newReadOut
+
+      -- * Writing
     , write
+    , unGet
+    , writeList
+
+      -- * Reading
     , read
+    , isEmpty
+    , getContents
     ) where
 
 
@@ -31,65 +39,49 @@ module Control.Concurrent.FanOutChan
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Concurrent.Chan ( Chan, newChan, writeChan, readChan )
-import Control.Concurrent.MVar ( MVar, newMVar
-                               , withMVar, modifyMVar, modifyMVar_
+import Control.Concurrent.Chan ( Chan, newChan, dupChan
+                               , writeChan, unGetChan, writeList2Chan
+                               , readChan, isEmptyChan, getChanContents
                                )
-import Control.Monad           ( return, (>>=), (>>), fail )
-import Data.Function           ( ($), flip )
-import Data.Functor            ( (<$>) )
-import Data.Foldable           ( traverse_ )
-import Data.Tuple              ( snd )
+import Data.Bool               ( Bool )
+import Data.Functor            ( (<$>), fmap )
 import System.IO               ( IO )
-import System.Mem.Weak         ( addFinalizer )
-import Prelude                 ( Integer, fromInteger, succ )
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode ( (∘) )
-
--- from containers:
-import           Data.Map        ( Map )
-import qualified Data.Map as Map ( empty, insert, delete )
 
 
 -------------------------------------------------------------------------------
 -- Fan out channels
 -------------------------------------------------------------------------------
 
-newtype FanOutChan α = FanOutChan (MVar ( Integer -- source of unique values
-                                        , Map Integer (Chan α)
-                                        )
-                                  )
+newtype FanOutChan α = FanOutChan {unFanOutChan ∷ Chan α}
 
 new ∷ IO (FanOutChan α)
-new = FanOutChan <$> newMVar (0, Map.empty)
+new = FanOutChan <$> newChan
 
-data ReadOut α = ReadOut KeyToWeakPtr (Chan α)
-
-type KeyToWeakPtr = Integer
+newtype ReadOut α = ReadOut {unReadOut ∷ Chan α}
 
 newReadOut ∷ FanOutChan α → IO (ReadOut α)
-newReadOut (FanOutChan mv) = do
-  chan ← newChan
-
-  unique ← modifyMVar mv $
-    \(existing, m) → let !unique = succ existing
-                         !m' = Map.insert unique chan m
-                     in return ((unique, m'), unique)
-
-  let keyToWeakPtr = succ unique ∷ KeyToWeakPtr
-
-  addFinalizer keyToWeakPtr $ modifyMVar_ mv $
-    \(existing, m) → let !m' = Map.delete unique m
-                     in return (existing, m')
-
-  return $ ReadOut keyToWeakPtr chan
+newReadOut = fmap ReadOut ∘ dupChan ∘ unFanOutChan
 
 write ∷ FanOutChan α → α → IO ()
-write (FanOutChan mv) x = withMVar mv $ traverse_ (flip writeChan x) ∘ snd
+write = writeChan ∘ unFanOutChan
+
+unGet ∷ FanOutChan α → α → IO ()
+unGet = unGetChan ∘ unFanOutChan
+
+writeList ∷ FanOutChan α → [α] → IO ()
+writeList = writeList2Chan ∘ unFanOutChan
 
 read ∷ ReadOut α → IO α
-read (ReadOut _ chan) = readChan chan
+read = readChan ∘ unReadOut
+
+isEmpty ∷ ReadOut α → IO Bool
+isEmpty = isEmptyChan ∘ unReadOut
+
+getContents ∷ ReadOut α → IO [α]
+getContents = getChanContents ∘ unReadOut
 
 
 -- The End ---------------------------------------------------------------------
