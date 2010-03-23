@@ -43,6 +43,7 @@ module Control.Concurrent.Thread
   , unsafeWaitTimeout_
 
     -- * Quering thread status
+  , result
   , isRunning
 
     -- * Convenience functions
@@ -56,6 +57,7 @@ module Control.Concurrent.Thread
   , forkIOInGroup
   , forkOSInGroup
   , waitAll
+  , isAnyRunning
   ) where
 
 
@@ -97,7 +99,7 @@ import qualified Control.Concurrent.Broadcast as Broadcast ( new )
 import Control.Concurrent.Broadcast
     ( Broadcast, broadcast, listen, tryListen, listenTimeout )
 
-import Utils ( void, ifM, throwInner, deleteWhen' )
+import Utils ( void, ifM, anyM, throwInner, deleteWhen' )
 
 
 -------------------------------------------------------------------------------
@@ -176,12 +178,17 @@ Internally used function which generalises 'forkIO' and 'forkOS'. Parametrised
 by the function which does the actual forking.
 -}
 fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
-fork doFork a = do
+fork doFork act = do
   stop ← Broadcast.new
-  let broadcastToStop = broadcast stop
-  tid ← ifM blocked (        doFork $ try          a  >>= broadcastToStop)
-                    (block $ doFork $ try (unblock a) >>= broadcastToStop)
-  return $ ThreadId stop tid
+  fmap (ThreadId stop) $ blockedApply act $ \a → doFork $ try a >>= broadcast stop
+
+-- | @blockedApply a f@ is an internally used function which applies @f@ in a
+-- blocked state to @a@ which is executed in the blocked state of the current
+-- thread.
+blockedApply :: IO α → (IO α → IO β) → IO β
+blockedApply a f = ifM blocked
+                       (f a)
+                       (block $ f $ unblock a)
 
 
 -------------------------------------------------------------------------------
@@ -260,13 +267,29 @@ unsafeWaitTimeout_ tid t = waitTimeout tid t >>=
 -------------------------------------------------------------------------------
 
 {-|
+A non-blocking 'wait'.
+
+* Returns 'Nothing' if the thread is still running.
+
+* Returns @'Just' ('Right' x)@ if the thread terminated normally and returned @x@.
+
+* Returns @'Just' ('Left' e)@ if some exception @e@ was thrown in the thread and
+wasn't caught.
+
+Notice that this observation is only a snapshot of a thread's state. By the time
+a program reacts on its result it may already be out of date.
+-}
+result ∷ ThreadId α → IO (Maybe (Either SomeException α))
+result = tryListen ∘ stopped
+
+{-|
 Returns 'True' if the given thread is currently running.
 
 Notice that this observation is only a snapshot of a thread's state. By the time
 a program reacts on its result it may already be out of date.
 -}
 isRunning ∷ ThreadId α → IO Bool
-isRunning = fmap isNothing ∘ tryListen ∘ stopped
+isRunning = fmap isNothing ∘ result
 
 
 -------------------------------------------------------------------------------
@@ -348,15 +371,12 @@ forkOSInGroup = forkInGroup Conc.forkOS
 forkInGroup ∷ (IO () → IO Conc.ThreadId) → Group α → IO α → IO (ThreadId α)
 forkInGroup doFork (Group mv) act = do
   stop ← Broadcast.new
-  let frk a = do tids ← takeMVar mv
-                 nativeTid ← doFork $ try a >>= \r → do deleteMyTid
-                                                        broadcast stop r
-                 let tid = ThreadId stop nativeTid
-                 putMVar mv $ tid:tids
-                 return tid
-  ifM blocked
-      (frk act)
-      (block $ frk $ unblock act)
+  blockedApply act $ \a → do
+    tids ← takeMVar mv
+    nativeTid ← doFork $ try a >>= (deleteMyTid >>) ∘ broadcast stop
+    let tid = ThreadId stop nativeTid
+    putMVar mv $ tid:tids
+    return tid
   where
     deleteMyTid = do
       myNativeTid ← myThreadId
@@ -365,6 +385,9 @@ forkInGroup doFork (Group mv) act = do
 
 waitAll ∷ Group α → IO ()
 waitAll (Group mv) = readMVar mv >>= mapM_ wait_
+
+isAnyRunning ∷ Group α → IO Bool
+isAnyRunning (Group mv) = readMVar mv >>= anyM isRunning
 
 
 -- The End ---------------------------------------------------------------------
