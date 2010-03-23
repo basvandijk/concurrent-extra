@@ -49,6 +49,13 @@ module Control.Concurrent.Thread
   , throwTo
   , killThread
   , killThreadTimeout
+
+    -- * Thread groups
+  , Group
+  , newGroup
+  , forkIOInGroup
+  , forkOSInGroup
+  , waitAll
   ) where
 
 
@@ -57,38 +64,40 @@ module Control.Concurrent.Thread
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Exception ( Exception, SomeException
-                         , AsyncException(ThreadKilled)
-                         , try, blocked, block, unblock
-                         )
-#ifdef __HADDOCK__
-import Control.Exception ( BlockedIndefinitelyOnMVar, BlockedIndefinitelyOnSTM )
-#endif
-import Control.Monad     ( return, (>>=), fail, (>>) )
-import Data.Bool         ( Bool(..) )
-import Data.Eq           ( Eq, (==) )
-import Data.Either       ( Either(..), either )
-import Data.Function     ( ($), on )
-import Data.Functor      ( fmap, (<$>) )
-import Data.Maybe        ( Maybe(..), maybe, isNothing, isJust )
-import Data.Ord          ( Ord, compare )
-import Data.Typeable     ( Typeable )
-import Prelude           ( Integer )
-import System.IO         ( IO )
-import Text.Show         ( Show, show )
-
+import Control.Exception  ( Exception, SomeException
+                          , AsyncException(ThreadKilled)
+                          , try, blocked, block, unblock
+                          )
+import Control.Concurrent ( myThreadId )
 import qualified Control.Concurrent as Conc
-    ( ThreadId, forkIO, forkOS, throwTo )
+                               ( ThreadId, forkIO, forkOS, throwTo )
+import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar, readMVar )
+#ifdef __HADDOCK__
+import Control.Exception  ( BlockedIndefinitelyOnMVar, BlockedIndefinitelyOnSTM )
+#endif
+import Control.Monad      ( return, (>>=), (>>), fail, mapM_ )
+import Data.Bool          ( Bool(..) )
+import Data.Eq            ( Eq, (==) )
+import Data.Either        ( Either(..), either )
+import Data.Function      ( ($), on, const )
+import Data.Functor       ( fmap, (<$>) )
+import Data.Maybe         ( Maybe(..), maybe, isNothing, isJust )
+import Data.Ord           ( Ord, compare )
+import Data.Typeable      ( Typeable )
+import Prelude            ( Integer, ($!) )
+import System.IO          ( IO )
+import Text.Show          ( Show, show )
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode ( (∘) )
+import Data.Eq.Unicode       ( (≡) )
 
 -- from concurrent-extra:
-import           Control.Concurrent.Broadcast ( Broadcast )
-import qualified Control.Concurrent.Broadcast as Broadcast
-    ( new, broadcast, listen, tryListen, listenTimeout )
+import qualified Control.Concurrent.Broadcast as Broadcast ( new )
+import Control.Concurrent.Broadcast
+    ( Broadcast, broadcast, listen, tryListen, listenTimeout )
 
-import Utils ( void, ifM, throwInner )
+import Utils ( void, ifM, throwInner, deleteWhen' )
 
 
 -------------------------------------------------------------------------------
@@ -108,7 +117,7 @@ behaviour of a concurrent program.
 data ThreadId α = ThreadId
     { stopped  ∷ Broadcast (Either SomeException α)
     , threadId ∷ Conc.ThreadId -- ^ Extract the underlying 'Conc.ThreadId'
-                               -- (@Conctrol.Concurrent.ThreadId@).
+                               -- (@Control.Concurrent.ThreadId@).
     } deriving Typeable
 
 instance Eq (ThreadId α) where
@@ -169,7 +178,7 @@ by the function which does the actual forking.
 fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
 fork doFork a = do
   stop ← Broadcast.new
-  let broadcastToStop = Broadcast.broadcast stop
+  let broadcastToStop = broadcast stop
   tid ← ifM blocked (        doFork $ try          a  >>= broadcastToStop)
                     (block $ doFork $ try (unblock a) >>= broadcastToStop)
   return $ ThreadId stop tid
@@ -188,7 +197,7 @@ Block until the given thread is terminated.
 caught.
 -}
 wait ∷ ThreadId α → IO (Either SomeException α)
-wait = Broadcast.listen ∘ stopped
+wait = listen ∘ stopped
 
 -- | Like 'wait' but will ignore the value returned by the thread.
 wait_ ∷ ThreadId α → IO ()
@@ -202,7 +211,7 @@ unsafeWait tid = wait tid >>= either throwInner return
 -- | Like 'unsafeWait' in that it will rethrow the exception that was thrown in
 -- the thread but it will ignore the value returned by the thread.
 unsafeWait_ ∷ ThreadId α → IO ()
-unsafeWait_ = void ∘ unsafeWait
+unsafeWait_ tid = wait tid >>= either throwInner (const $ return ())
 
 
 -- ** Waiting with a timeout
@@ -218,7 +227,7 @@ the specified time.
 The timeout is specified in microseconds.
 -}
 waitTimeout ∷ ThreadId α → Integer → IO (Maybe (Either SomeException α))
-waitTimeout = Broadcast.listenTimeout ∘ stopped
+waitTimeout = listenTimeout ∘ stopped
 
 -- | Like 'waitTimeout' but will ignore the value returned by the thread.
 -- Returns 'False' when a timeout occurred and 'True' otherwise.
@@ -231,15 +240,19 @@ thread. Returns 'Nothing' if a timeout occured or 'Just' the value returned from
 the target thread.
 -}
 unsafeWaitTimeout ∷ ThreadId α → Integer → IO (Maybe α)
-unsafeWaitTimeout tid t = waitTimeout tid t >>= maybe (return Nothing)
-                                                      (either throwInner
-                                                              (return ∘ Just))
+unsafeWaitTimeout tid t = waitTimeout tid t >>=
+                            maybe (return Nothing)
+                                  (either throwInner
+                                          (return ∘ Just))
 
 -- | Like 'unsafeWaitTimeout' in that it will rethrow the exception that was
 -- thrown in the thread but it will ignore the value returned by the thread.
 -- Returns 'False' when a timeout occurred and 'True' otherwise.
 unsafeWaitTimeout_ ∷ ThreadId α → Integer → IO Bool
-unsafeWaitTimeout_ tid t = isJust <$> unsafeWaitTimeout tid t
+unsafeWaitTimeout_ tid t = waitTimeout tid t >>=
+                             maybe (return False)
+                                   (either throwInner
+                                           (const $ return True))
 
 
 -------------------------------------------------------------------------------
@@ -253,7 +266,7 @@ Notice that this observation is only a snapshot of a thread's state. By the time
 a program reacts on its result it may already be out of date.
 -}
 isRunning ∷ ThreadId α → IO Bool
-isRunning = fmap isNothing ∘ Broadcast.tryListen ∘ stopped
+isRunning = fmap isNothing ∘ tryListen ∘ stopped
 
 
 -------------------------------------------------------------------------------
@@ -315,6 +328,43 @@ later time as a direct result of calling this function.
 -}
 killThreadTimeout ∷ ThreadId α → Integer → IO Bool
 killThreadTimeout tid time = throwTo tid ThreadKilled >> waitTimeout_ tid time
+
+
+-------------------------------------------------------------------------------
+-- * Thread groups
+-------------------------------------------------------------------------------
+
+newtype Group α = Group (MVar [ThreadId α])
+
+newGroup ∷ IO (Group α)
+newGroup = Group <$> newMVar []
+
+forkIOInGroup ∷ Group α → IO α → IO (ThreadId α)
+forkIOInGroup = forkInGroup Conc.forkIO
+
+forkOSInGroup ∷ Group α → IO α → IO (ThreadId α)
+forkOSInGroup = forkInGroup Conc.forkOS
+
+forkInGroup ∷ (IO () → IO Conc.ThreadId) → Group α → IO α → IO (ThreadId α)
+forkInGroup doFork (Group mv) act = do
+  stop ← Broadcast.new
+  let frk a = do tids ← takeMVar mv
+                 nativeTid ← doFork $ try a >>= \r → do deleteMyTid
+                                                        broadcast stop r
+                 let tid = ThreadId stop nativeTid
+                 putMVar mv $ tid:tids
+                 return tid
+  ifM blocked
+      (frk act)
+      (block $ frk $ unblock act)
+  where
+    deleteMyTid = do
+      myNativeTid ← myThreadId
+      tids ← takeMVar mv
+      putMVar mv $! deleteWhen' ((myNativeTid ≡) ∘ threadId) tids
+
+waitAll ∷ Group α → IO ()
+waitAll (Group mv) = readMVar mv >>= mapM_ wait_
 
 
 -- The End ---------------------------------------------------------------------
