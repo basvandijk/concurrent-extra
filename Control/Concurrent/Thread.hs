@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, UnicodeSyntax #-}
 
 -------------------------------------------------------------------------------
 -- |
@@ -12,9 +12,9 @@
 --
 -- Inspired by: <http://hackage.haskell.org/package/threadmanager>
 --
--- This module re-implements several functions from @Control.Concurrent@. Avoid
--- ambiguities by importing one or both qualified. We suggest importing this
--- module like:
+-- This module provides equivalently named functions from
+-- @Control.Concurrent@. Avoid ambiguities by importing one or both
+-- qualified. We suggest importing this module like:
 --
 -- @
 -- import qualified Control.Concurrent.Thread as Thread ( ... )
@@ -50,14 +50,6 @@ module Control.Concurrent.Thread
   , throwTo
   , killThread
   , killThreadTimeout
-
-    -- * Thread groups
-  , Group
-  , newGroup
-  , forkIOInGroup
-  , forkOSInGroup
-  , waitAll
-  , isAnyRunning
   ) where
 
 
@@ -66,70 +58,35 @@ module Control.Concurrent.Thread
 -------------------------------------------------------------------------------
 
 -- from base:
+import qualified Control.Concurrent as Conc ( ThreadId, forkIO, forkOS, throwTo )
 import Control.Exception  ( Exception, SomeException
                           , AsyncException(ThreadKilled)
-                          , try, blocked, block, unblock
+                          , try
                           )
-import Control.Concurrent ( myThreadId )
-import qualified Control.Concurrent as Conc
-                               ( ThreadId, forkIO, forkOS, throwTo )
-import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar, readMVar )
 #ifdef __HADDOCK__
 import Control.Exception  ( BlockedIndefinitelyOnMVar, BlockedIndefinitelyOnSTM )
 #endif
-import Control.Monad      ( return, (>>=), (>>), fail, mapM_ )
+import Control.Monad      ( return, (>>=), (>>), fail )
 import Data.Bool          ( Bool(..) )
-import Data.Eq            ( Eq, (==) )
 import Data.Either        ( Either(..), either )
-import Data.Function      ( ($), on, const )
+import Data.Function      ( ($), const )
 import Data.Functor       ( fmap, (<$>) )
 import Data.Maybe         ( Maybe(..), maybe, isNothing, isJust )
-import Data.Ord           ( Ord, compare )
-import Data.Typeable      ( Typeable )
-import Prelude            ( Integer, ($!) )
+import Prelude            ( Integer )
 import System.IO          ( IO )
-import Text.Show          ( Show, show )
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode ( (∘) )
-import Data.Eq.Unicode       ( (≡) )
 
 -- from concurrent-extra:
 import qualified Control.Concurrent.Broadcast as Broadcast ( new )
-import Control.Concurrent.Broadcast
-    ( Broadcast, broadcast, listen, tryListen, listenTimeout )
+import Control.Concurrent.Broadcast ( broadcast, listen, tryListen, listenTimeout )
 
-import Utils ( void, ifM, anyM, throwInner, deleteWhen' )
+import Utils ( void, throwInner, blockedApply )
 
-
--------------------------------------------------------------------------------
--- Threads
--------------------------------------------------------------------------------
-
-{-|
-A @'ThreadId' &#x3B1;@ is an abstract type representing a handle to a thread
-that is executing or has executed a computation of type @'IO' &#x3B1;@.
-
-@'ThreadId' &#x3B1;@ is an instance of 'Eq', 'Ord' and 'Show', where the 'Ord'
-instance implements an arbitrary total ordering over 'ThreadId's. The 'Show'
-instance lets you convert an arbitrary-valued 'ThreadId' to string form; showing
-a 'ThreadId' value is occasionally useful when debugging or diagnosing the
-behaviour of a concurrent program.
--}
-data ThreadId α = ThreadId
-    { stopped  ∷ Broadcast (Either SomeException α)
-    , threadId ∷ Conc.ThreadId -- ^ Extract the underlying 'Conc.ThreadId'
-                               -- (@Control.Concurrent.ThreadId@).
-    } deriving Typeable
-
-instance Eq (ThreadId α) where
-    (==) = (==) `on` threadId
-
-instance Ord (ThreadId α) where
-    compare = compare `on` threadId
-
-instance Show (ThreadId α) where
-    show = show ∘ threadId
+import Control.Concurrent.Thread.Internal ( ThreadId(ThreadId)
+                                          , stopped, threadId
+                                          )
 
 
 -------------------------------------------------------------------------------
@@ -181,14 +138,6 @@ fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
 fork doFork act = do
   stop ← Broadcast.new
   fmap (ThreadId stop) $ blockedApply act $ \a → doFork $ try a >>= broadcast stop
-
--- | @blockedApply a f@ is an internally used function which applies @f@ in a
--- blocked state to @a@ which is executed in the blocked state of the current
--- thread.
-blockedApply :: IO α → (IO α → IO β) → IO β
-blockedApply a f = ifM blocked
-                       (f a)
-                       (block $ f $ unblock a)
 
 
 -------------------------------------------------------------------------------
@@ -283,7 +232,7 @@ result ∷ ThreadId α → IO (Maybe (Either SomeException α))
 result = tryListen ∘ stopped
 
 {-|
-Returns 'True' if the given thread is currently running.
+Returns 'True' if the thread is currently running and 'False' otherwise.
 
 Notice that this observation is only a snapshot of a thread's state. By the time
 a program reacts on its result it may already be out of date.
@@ -351,43 +300,6 @@ later time as a direct result of calling this function.
 -}
 killThreadTimeout ∷ ThreadId α → Integer → IO Bool
 killThreadTimeout tid time = throwTo tid ThreadKilled >> waitTimeout_ tid time
-
-
--------------------------------------------------------------------------------
--- * Thread groups
--------------------------------------------------------------------------------
-
-newtype Group α = Group (MVar [ThreadId α])
-
-newGroup ∷ IO (Group α)
-newGroup = Group <$> newMVar []
-
-forkIOInGroup ∷ Group α → IO α → IO (ThreadId α)
-forkIOInGroup = forkInGroup Conc.forkIO
-
-forkOSInGroup ∷ Group α → IO α → IO (ThreadId α)
-forkOSInGroup = forkInGroup Conc.forkOS
-
-forkInGroup ∷ (IO () → IO Conc.ThreadId) → Group α → IO α → IO (ThreadId α)
-forkInGroup doFork (Group mv) act = do
-  stop ← Broadcast.new
-  blockedApply act $ \a → do
-    tids ← takeMVar mv
-    nativeTid ← doFork $ try a >>= (deleteMyTid >>) ∘ broadcast stop
-    let tid = ThreadId stop nativeTid
-    putMVar mv $ tid:tids
-    return tid
-  where
-    deleteMyTid = do
-      myNativeTid ← myThreadId
-      tids ← takeMVar mv
-      putMVar mv $! deleteWhen' ((myNativeTid ≡) ∘ threadId) tids
-
-waitAll ∷ Group α → IO ()
-waitAll (Group mv) = readMVar mv >>= mapM_ wait_
-
-isAnyRunning ∷ Group α → IO Bool
-isAnyRunning (Group mv) = readMVar mv >>= anyM isRunning
 
 
 -- The End ---------------------------------------------------------------------
