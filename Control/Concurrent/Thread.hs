@@ -36,11 +36,13 @@ module Control.Concurrent.Thread
   , unsafeWait
   , unsafeWait_
 
+  {- TODO:
     -- ** Waiting with a timeout
   , waitTimeout
   , waitTimeout_
   , unsafeWaitTimeout
   , unsafeWaitTimeout_
+  -}
 
     -- * Quering thread status
   , result
@@ -49,7 +51,10 @@ module Control.Concurrent.Thread
     -- * Convenience functions
   , throwTo
   , killThread
+
+  {- TODO:
   , killThreadTimeout
+  -}
   ) where
 
 
@@ -59,6 +64,7 @@ module Control.Concurrent.Thread
 
 -- from base:
 import qualified Control.Concurrent as Conc ( ThreadId, forkIO, forkOS, throwTo )
+import Control.Concurrent.MVar ( newEmptyMVar, putMVar, readMVar )
 import Control.Exception  ( Exception, SomeException
                           , AsyncException(ThreadKilled)
                           , try
@@ -70,19 +76,20 @@ import Control.Monad      ( return, (>>=), (>>), fail )
 import Data.Bool          ( Bool(..) )
 import Data.Either        ( Either(..), either )
 import Data.Function      ( ($), const )
-import Data.Functor       ( fmap, (<$>) )
-import Data.Maybe         ( Maybe(..), maybe, isNothing, isJust )
-import Prelude            ( Integer )
+import Data.Functor       ( fmap
+                          -- TODO: , (<$>)
+                          )
+import Data.Maybe         ( Maybe(..), isNothing
+                          -- TODO: , isJust, maybe
+                          )
+-- TODO: import Prelude            ( Integer )
 import System.IO          ( IO )
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode ( (∘) )
 
 -- from concurrent-extra:
-import qualified Control.Concurrent.Broadcast as Broadcast ( new )
-import Control.Concurrent.Broadcast ( broadcast, listen, tryListen, listenTimeout )
-
-import Utils ( void, throwInner, blockedApply )
+import Utils ( void, throwInner, blockedApply, tryRead )
 
 import Control.Concurrent.Thread.Internal ( ThreadId(ThreadId)
                                           , stopped, threadId
@@ -136,8 +143,8 @@ by the function which does the actual forking.
 -}
 fork ∷ (IO () → IO Conc.ThreadId) → IO α → IO (ThreadId α)
 fork doFork act = do
-  stop ← Broadcast.new
-  fmap (ThreadId stop) $ blockedApply act $ \a → doFork $ try a >>= broadcast stop
+  stop ← newEmptyMVar
+  fmap (ThreadId stop) $ blockedApply act $ \a → doFork $ try a >>= putMVar stop
 
 
 -------------------------------------------------------------------------------
@@ -153,7 +160,7 @@ Block until the given thread is terminated.
 caught.
 -}
 wait ∷ ThreadId α → IO (Either SomeException α)
-wait = listen ∘ stopped
+wait = readMVar ∘ stopped
 
 -- | Like 'wait' but will ignore the value returned by the thread.
 wait_ ∷ ThreadId α → IO ()
@@ -169,7 +176,7 @@ unsafeWait tid = wait tid >>= either throwInner return
 unsafeWait_ ∷ ThreadId α → IO ()
 unsafeWait_ tid = wait tid >>= either throwInner (const $ return ())
 
-
+{- TODO:
 -- ** Waiting with a timeout
 
 {-|
@@ -209,7 +216,7 @@ unsafeWaitTimeout_ tid t = waitTimeout tid t >>=
                              maybe (return False)
                                    (either throwInner
                                            (const $ return True))
-
+-}
 
 -------------------------------------------------------------------------------
 -- * Quering thread status
@@ -229,7 +236,7 @@ Notice that this observation is only a snapshot of a thread's state. By the time
 a program reacts on its result it may already be out of date.
 -}
 result ∷ ThreadId α → IO (Maybe (Either SomeException α))
-result = tryListen ∘ stopped
+result = tryRead ∘ stopped
 
 {-|
 Returns 'True' if the thread is currently running and 'False' otherwise.
@@ -289,6 +296,7 @@ target thread has already completed.
 killThread ∷ ThreadId α → IO ()
 killThread tid = throwTo tid ThreadKilled >> wait_ tid
 
+{- TODO:
 {-|
 Like 'killThread' but with a timeout. Returns 'True' if the target thread was
 terminated within the given amount of time, 'False' otherwise.
@@ -300,6 +308,7 @@ later time as a direct result of calling this function.
 -}
 killThreadTimeout ∷ ThreadId α → Integer → IO Bool
 killThreadTimeout tid time = throwTo tid ThreadKilled >> waitTimeout_ tid time
+-}
 
 
 -- The End ---------------------------------------------------------------------

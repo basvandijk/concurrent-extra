@@ -38,7 +38,10 @@ module Control.Concurrent.Thread.Group
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar, readMVar )
+import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
+                               , takeMVar, putMVar
+                               , readMVar
+                               )
 import Control.Exception       ( try, block )
 import Control.Monad           ( (>>=), (>>), return, fail, mapM_)
 import Data.Bool               ( Bool(..) )
@@ -54,9 +57,6 @@ import Data.Eq.Unicode       ( (≡) )
 import Data.Function.Unicode ( (∘) )
 
 -- from concurrent-extra:
-import qualified Control.Concurrent.Broadcast as Broadcast ( new )
-import Control.Concurrent.Broadcast ( broadcast )
-
 import Control.Concurrent.Thread.Internal ( ThreadId( ThreadId ), threadId )
 import Control.Concurrent.Thread ( wait_, isRunning )
 
@@ -123,10 +123,10 @@ forkOS = fork C.forkOS
 
 fork ∷ (IO () → IO C.ThreadId) → ThreadGroup α → IO α → IO (ThreadId α)
 fork doFork (ThreadGroup mv) act = do
-  stop ← Broadcast.new
+  stop ← newEmptyMVar
   blockedApply act $ \a → do
     tids ← takeMVar mv
-    nativeTid ← doFork $ try a >>= (deleteMyTid >>) ∘ broadcast stop
+    nativeTid ← doFork $ try a >>= (deleteMyTid >>) ∘ putMVar stop
     let tid = ThreadId stop nativeTid
     putMVar mv $ tid:tids
     return tid

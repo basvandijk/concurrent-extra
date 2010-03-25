@@ -11,20 +11,18 @@ module Control.Concurrent.Thread.Internal
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Exception ( SomeException )
-import Data.Eq           ( Eq, (==) )
-import Data.Either       ( Either )
-import Data.Function     ( on )
-import Data.Ord          ( Ord, compare )
-import Data.Typeable     ( Typeable )
-import Text.Show         ( Show, show )
+import Control.Concurrent.MVar           ( MVar )
+import Control.Exception                 ( SomeException )
+import Data.Eq                           ( Eq, (==) )
+import Data.Either                       ( Either )
+import Data.Function                     ( on )
+import Data.Ord                          ( Ord, compare )
+import Data.Typeable                     ( Typeable )
+import Text.Show                         ( Show, show )
 import qualified Control.Concurrent as C ( ThreadId )
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode ( (∘) )
-
--- from concurrent-extra:
-import Control.Concurrent.Broadcast ( Broadcast )
 
 
 -------------------------------------------------------------------------------
@@ -36,7 +34,7 @@ A @'ThreadId' &#x3B1;@ is an abstract type representing a handle to a thread
 that is executing or has executed a computation of type @'IO' &#x3B1;@.
 -}
 data ThreadId α = ThreadId
-    { stopped  ∷ Broadcast (Either SomeException α)
+    { stopped  ∷ MVar (Either SomeException α)
     , threadId ∷ C.ThreadId -- ^ Extract the underlying
                             -- @Control.Concurrent.'C.ThreadId'@.
     } deriving Typeable

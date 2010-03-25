@@ -7,7 +7,7 @@ module Utils where
 --------------------------------------------------------------------------------
 
 -- from base:
-import Control.Concurrent.MVar ( MVar, takeMVar, putMVar )
+import Control.Concurrent.MVar ( MVar, takeMVar, putMVar, tryTakeMVar )
 import Control.Exception       ( SomeException(SomeException)
                                , blocked, block, unblock
                                , throwIO
@@ -17,6 +17,7 @@ import Data.Bool               ( Bool(False, True), otherwise )
 import Data.Function           ( ($) )
 import Data.Functor            ( Functor, (<$) )
 import Data.IORef              ( IORef, readIORef, writeIORef )
+import Data.Maybe              ( Maybe(Nothing, Just) )
 import Prelude                 ( ($!) )
 import System.IO               ( IO )
 
@@ -49,6 +50,12 @@ throwInner (SomeException e) = throwIO e
 
 purelyModifyMVar ∷ MVar α → (α → α) → IO ()
 purelyModifyMVar mv f = block $ takeMVar mv >>= putMVar mv ∘! f
+
+tryRead ∷ MVar α → IO (Maybe α)
+tryRead mv = block $ do mx ← tryTakeMVar mv
+                        case mx of
+                          Nothing → return mx
+                          Just x  → putMVar mv x >> return mx
 
 modifyIORefM ∷ IORef α → (α → IO (α, β)) → IO β
 modifyIORefM r f = do (y, z) ← readIORef r >>= f
