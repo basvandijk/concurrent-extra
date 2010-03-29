@@ -36,11 +36,6 @@ description:
   .
   Besides these synchronisation primitives the package also provides:
   .
-  * @Thread@: Threads extended with the ability to wait for their
-    termination.
-  .
-  * @Thread.Group@: Wait for a group of threads to terminate.
-  .
   * @Thread.Delay@: Arbitrarily long thread delays.
   .
   * @Timeout@: Wait arbitrarily long for an IO computation to finish.
@@ -81,12 +76,9 @@ library
                  , Control.Concurrent.FanOutChan
                  , Control.Concurrent.ReadWriteLock
                  , Control.Concurrent.ReadWriteVar
-                 , Control.Concurrent.Thread
-                 , Control.Concurrent.Thread.Group
                  , Control.Concurrent.Thread.Delay
                  , Control.Concurrent.Timeout
   other-modules: Utils
-               , Control.Concurrent.Thread.Internal
   ghc-options: -Wall
 
   if flag(nolib)
@@ -102,7 +94,6 @@ executable test-concurrent-extra
                , Control.Concurrent.Broadcast.Test
                , Control.Concurrent.ReadWriteLock.Test
                , Control.Concurrent.ReadWriteVar.Test
-               , Control.Concurrent.Thread.Test
                , Control.Concurrent.Timeout.Test
                , TestUtils
 
