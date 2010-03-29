@@ -16,7 +16,6 @@ import qualified Control.Concurrent.RLock.Test         as RLock     ( tests )
 import qualified Control.Concurrent.Broadcast.Test     as Broadcast ( tests )
 import qualified Control.Concurrent.ReadWriteLock.Test as RWLock    ( tests )
 import qualified Control.Concurrent.ReadWriteVar.Test  as RWVar     ( tests )
-import qualified Control.Concurrent.Thread.Test        as Thread    ( tests )
 import qualified Control.Concurrent.Timeout.Test       as Timeout   ( tests )
 
 -- from test-framework:
@@ -38,7 +37,6 @@ tests = [ testGroup "Pessimistic locking"
           , testGroup "Broadcast"     Broadcast.tests
           , testGroup "ReadWriteLock" RWLock.tests
           , testGroup "ReadWriteVar"  RWVar.tests
-          , testGroup "Thread"        Thread.tests
           ]
         , testGroup "Timeout" Timeout.tests
         ]

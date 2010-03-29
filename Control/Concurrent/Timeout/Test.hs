@@ -10,7 +10,7 @@ module Control.Concurrent.Timeout.Test ( tests ) where
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Concurrent ( )
+import Control.Concurrent ( forkIO, killThread )
 import Control.Exception  ( block )
 import Control.Monad      ( (>>=), fail, (>>) )
 import Data.Function      ( ($) )
@@ -21,9 +21,9 @@ import Prelude.Unicode       ( (⋅) )
 
 -- from concurrent-extra:
 import qualified Control.Concurrent.Lock   as Lock
-import qualified Control.Concurrent.Thread as Thread
 import Control.Concurrent.Timeout ( timeout )
 import TestUtils ( a_moment, within )
+import Utils ( void )
 
 -- from HUnit:
 import Test.HUnit ( Assertion, assert )
@@ -45,10 +45,9 @@ tests = [ testCase "timeout exception" test_timeout_exception ]
 test_timeout_exception ∷ Assertion
 test_timeout_exception = assert $ within (10 ⋅ a_moment) $ do
   l ← Lock.newAcquired
-  tid ← block $ Thread.forkIO
-                $ timeout (toInteger $ 1000 ⋅ a_moment)
-                  $ Lock.acquire l
-  Thread.killThread tid
+  tid ← block $ forkIO $
+          void $ timeout (toInteger $ 1000 ⋅ a_moment) $ Lock.acquire l
+  killThread tid
   Lock.release l
 
 
