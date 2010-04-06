@@ -20,8 +20,6 @@ description:
   .
   * @Event@: Wake multiple threads by signalling an event.
   .
-  * @FanOutChan@: Channels with multiple independent read outs.
-  .
   * @Lock@: Enforce exclusive access to a resource. Also known as a
     binary semaphore or mutex.
   .
@@ -73,7 +71,6 @@ library
                  , Control.Concurrent.RLock
                  , Control.Concurrent.Event
                  , Control.Concurrent.Broadcast
-                 , Control.Concurrent.FanOutChan
                  , Control.Concurrent.ReadWriteLock
                  , Control.Concurrent.ReadWriteVar
                  , Control.Concurrent.Thread.Delay
