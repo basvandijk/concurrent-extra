@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
 --------------------------------------------------------------------------------
 -- |
@@ -65,6 +65,9 @@ import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
 import Control.Exception       ( block, bracket_, finally )
 import Control.Monad           ( Monad, return, (>>=), (>>), fail, when )
 import Data.Bool               ( Bool, not )
+#ifdef __HADDOCK__
+import Data.Bool               ( Bool(False, True) )
+#endif
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
 import Data.Functor            ( fmap, (<$>) )
