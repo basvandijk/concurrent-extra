@@ -53,7 +53,7 @@ import Data.Bool               ( Bool, not )
 #ifdef __HADDOCK__
 import Data.Bool               (Bool(False, True))
 #endif
--- TODO: import Data.Eq                 ( Eq )
+-- TODO: import Data.Eq        ( Eq )
 import Data.Function           ( ($) )
 import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( Maybe(Nothing, Just), isJust )
@@ -68,7 +68,7 @@ import Control.Concurrent.STM       ( retry )
 #endif
 import Control.Concurrent.STM.TMVar ( TMVar, newTMVar, newEmptyTMVar
                                     , takeTMVar, tryTakeTMVar
-                                    , tryPutTMVar
+                                    , putTMVar, tryPutTMVar
                                     , isEmptyTMVar
                                     )
 
@@ -130,8 +130,8 @@ tryAcquire = fmap isJust ∘ tryTakeTMVar ∘ un
 Note that it is an error to release a lock in the \"unlocked\" state!
 -}
 release ∷ Lock → STM ()
-release (Lock mv) = do
-  b ← tryPutTMVar mv ()
+release (Lock tmv) = do
+  b ← tryPutTMVar tmv ()
   when (not b) $ error "Control.Concurrent.STM.Lock.release: Can't release unlocked Lock!"
 
 
@@ -168,12 +168,12 @@ tryWith l a = block $ do
 
 @wait@ does not alter the state of the lock.
 
-Note that @wait@ is just a convenience function defined as:
+Note that @wait@ is just a convenience function which can be defined as:
 
 @wait l = 'acquire' l '>>' 'release' l@
 -}
 wait ∷ Lock → STM ()
-wait l = acquire l >> release l
+wait (Lock tmv) = takeTMVar tmv >> putTMVar tmv ()
 
 
 --------------------------------------------------------------------------------

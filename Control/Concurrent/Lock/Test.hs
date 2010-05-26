@@ -11,11 +11,13 @@ module Control.Concurrent.Lock.Test ( tests ) where
 
 -- from base:
 import Control.Concurrent ( forkIO )
-import Control.Monad      ( (>>=), fail, (>>) )
-import Data.Bool          ( not )
+import Control.Monad      ( return, (>>=), fail, (>>) )
+import Data.Bool          ( Bool(False, True), not, (&&) )
 import Data.Function      ( ($) )
-import Data.Functor       ( fmap  )
+import Data.Functor       ( fmap )
+import Data.IORef         ( newIORef, writeIORef, readIORef )
 import Prelude            ( fromInteger )
+
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode ( (∘) )
@@ -47,6 +49,7 @@ tests = [ testCase "acquire release"    test_lock_1
         , testCase "newAcquired locked" test_lock_5
         , testCase "acq rel unlocked"   test_lock_6
         , testCase "conc release"       test_lock_7
+        , testCase "wait"               test_lock_8
         ]
 
 test_lock_1 ∷ Assertion
@@ -82,6 +85,18 @@ test_lock_7 = assert ∘ within (10 ⋅ a_moment) $ do
   l ← Lock.newAcquired
   _ ← forkIO $ wait_a_moment >> Lock.release l
   Lock.acquire l
+
+test_lock_8 ∷ Assertion
+test_lock_8 = assert $ do
+  ioRef ← newIORef False
+  l ← Lock.newAcquired
+  _ ← forkIO $ do wait_a_moment
+                  writeIORef ioRef True
+                  Lock.release l
+  Lock.wait l
+  set ← readIORef ioRef
+  locked ← Lock.locked l
+  return $ set && not locked
 
 
 -- The End ---------------------------------------------------------------------

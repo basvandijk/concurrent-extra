@@ -59,7 +59,7 @@ module Control.Concurrent.Lock
 import Control.Applicative     ( liftA2 )
 import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , takeMVar, tryTakeMVar
-                               , tryPutMVar
+                               , putMVar, tryPutMVar
                                , isEmptyMVar
                                )
 import Control.Exception       ( block, bracket_, finally )
@@ -192,12 +192,12 @@ another thread changes it to \"unlocked\".
 
 @wait@ does not alter the state of the lock.
 
-Note that @wait@ is just a convenience function defined as:
+Note that @wait@ is just a convenience function we can be defined as:
 
 @wait l = 'block' '$' 'acquire' l '>>' 'release' l@
 -}
 wait ∷ Lock → IO ()
-wait l = block $ acquire l >> release l
+wait (Lock mv) = block $ takeMVar mv >> putMVar mv ()
 
 
 --------------------------------------------------------------------------------
