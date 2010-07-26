@@ -51,9 +51,9 @@ import Control.Exception       ( block, bracket_, finally )
 import Control.Monad           ( Monad, return, (>>=), (>>), fail, when )
 import Data.Bool               ( Bool, not )
 #ifdef __HADDOCK__
-import Data.Bool               (Bool(False, True))
+import Data.Bool               ( Bool(False, True) )
 #endif
--- TODO: import Data.Eq        ( Eq )
+import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
 import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( Maybe(Nothing, Just), isJust )
@@ -82,9 +82,7 @@ import Data.Function.Unicode   ( (∘) )
 
 -- | A lock is in one of two states: \"locked\" or \"unlocked\".
 newtype Lock = Lock {un ∷ TMVar ()}
-    deriving ( Typeable
-             -- TODO: , Eq -- I added an Eq instance for TMVar to the HEAD branch of stm.
-             )
+    deriving (Typeable, Eq)
 
 
 --------------------------------------------------------------------------------

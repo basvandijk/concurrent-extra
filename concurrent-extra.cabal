@@ -1,5 +1,5 @@
 name:          concurrent-extra
-version:       0.5.1.1
+version:       0.6
 cabal-version: >= 1.6
 build-type:    Custom
 stability:     experimental
@@ -20,7 +20,6 @@ description:
   .
   * @Event@: Wake multiple threads by signalling an event.
   .
-
   * @Lock@: Enforce exclusive access to a resource. Also known as a
     binary semaphore or mutex. The package additionally provides an
     alternative that works in the @STM@ monad.
@@ -67,9 +66,9 @@ flag nolib
 -------------------------------------------------------------------------------
 
 library
-  build-depends: base                 >= 3     && < 4.3
-               , base-unicode-symbols >= 0.1.1 && < 0.3
-               , stm                  >= 2.1   && < 2.2
+  build-depends: base                 >= 3       && < 4.3
+               , base-unicode-symbols >= 0.1.1   && < 0.3
+               , stm                  >= 2.1.2.1 && < 2.2
   exposed-modules: Control.Concurrent.Lock
                  , Control.Concurrent.STM.Lock
                  , Control.Concurrent.RLock
