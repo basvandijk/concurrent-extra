@@ -47,7 +47,7 @@ import qualified System.Timeout ( timeout )
 -- from base-unicode-symbols:
 import Data.Eq.Unicode    ( (≡) )
 
--- from concurrent-extra:
+-- from concurrent-extra (this package):
 import Control.Concurrent.Thread.Delay ( delay )
 
 

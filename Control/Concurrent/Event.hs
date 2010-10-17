@@ -57,7 +57,7 @@ module Control.Concurrent.Event
 -- Imports
 -------------------------------------------------------------------------------
 
--- from base
+-- from base:
 import Data.Bool               ( Bool(..) )
 import Data.Eq                 ( Eq )
 import Data.Functor            ( fmap, (<$>) )
@@ -69,10 +69,10 @@ import Control.Exception       ( block )
 import Prelude                 ( Integer )
 import System.IO               ( IO )
 
--- from base-unicode-symbols
+-- from base-unicode-symbols:
 import Data.Function.Unicode   ( (∘) )
 
--- from concurrent-extra
+-- from concurrent-extra (this package):
 import           Control.Concurrent.Broadcast ( Broadcast )
 import qualified Control.Concurrent.Broadcast as Broadcast
     ( new, newBroadcasting

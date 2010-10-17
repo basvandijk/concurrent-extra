@@ -47,7 +47,7 @@ module Control.Concurrent.STM.Lock
 
 -- from base:
 import Control.Applicative     ( liftA2 )
-import Control.Exception       ( block, bracket_, finally )
+import Control.Exception       ( bracket_, onException )
 import Control.Monad           ( Monad, return, (>>=), (>>), fail, when )
 import Data.Bool               ( Bool, not )
 #ifdef __HADDOCK__
@@ -74,6 +74,9 @@ import Control.Concurrent.STM.TMVar ( TMVar, newTMVar, newEmptyTMVar
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode   ( (∘) )
+
+-- from concurrent-extra (this package):
+import Utils                   ( mask )
 
 
 --------------------------------------------------------------------------------
@@ -153,10 +156,12 @@ by raising an exception, the lock is released and 'Just' the result of the
 computation is returned.
 -}
 tryWith ∷ Lock → IO α → IO (Maybe α)
-tryWith l a = block $ do
+tryWith l a = mask $ \restore → do
   acquired ← atomically (tryAcquire l)
   if acquired
-    then Just <$> a `finally` atomically (release l)
+    then do r ← restore a `onException` atomically (release l)
+            atomically (release l)
+            return $ Just r
     else return Nothing
 
 {-|

@@ -61,7 +61,7 @@ module Control.Concurrent.ReadWriteVar
 -- Imports
 -------------------------------------------------------------------------------
 
--- from base
+-- from base:
 import Control.Applicative     ( liftA2 )
 import Control.Monad           ( (>>=) )
 import Data.Bool               ( Bool(..) )
@@ -77,10 +77,10 @@ import Data.Function           ( const )
 import Prelude                 ( undefined )
 #endif
 
--- from base-unicode-symbols
+-- from base-unicode-symbols:
 import Data.Function.Unicode   ( (∘) )
 
--- from concurrent-extra
+-- from concurrent-extra (this package):
 import           Control.Concurrent.ReadWriteLock ( RWLock )
 import qualified Control.Concurrent.ReadWriteLock as RWLock
 

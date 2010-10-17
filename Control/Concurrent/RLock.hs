@@ -65,7 +65,7 @@ module Control.Concurrent.RLock
 import Control.Applicative     ( liftA2 )
 import Control.Concurrent      ( ThreadId, myThreadId )
 import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, readMVar, putMVar )
-import Control.Exception       ( block, bracket_, finally )
+import Control.Exception       ( bracket_, onException )
 import Control.Monad           ( Monad, return, (>>=), fail, (>>) )
 import Data.Bool               ( Bool(False, True), otherwise )
 import Data.Eq                 ( Eq )
@@ -82,10 +82,12 @@ import Data.Eq.Unicode         ( (≡) )
 import Data.Function.Unicode   ( (∘) )
 import Data.Monoid.Unicode     ( (⊕) )
 
--- from concurrent-extra:
+-- from concurrent-extra (this package):
 import           Control.Concurrent.Lock ( Lock )
 import qualified Control.Concurrent.Lock as Lock
     ( new, newAcquired, acquire, release, wait )
+
+import Utils ( mask, mask_ )
 
 
 --------------------------------------------------------------------------------
@@ -165,7 +167,7 @@ wake-up order is undefined.)
 acquire ∷ RLock → IO ()
 acquire (RLock mv) = do
   myTID ← myThreadId
-  block $ let acq = do t@(mb, lock) ← takeMVar mv
+  mask_ $ let acq = do t@(mb, lock) ← takeMVar mv
                        case mb of
                          Nothing         → do Lock.acquire lock
                                               putMVar mv (Just (myTID, 1), lock)
@@ -190,7 +192,7 @@ returns 'False'.
 tryAcquire ∷ RLock → IO Bool
 tryAcquire (RLock mv) = do
   myTID ← myThreadId
-  block $ do
+  mask_ $ do
     t@(mb, lock) ← takeMVar mv
     case mb of
       Nothing         → do Lock.acquire lock
@@ -216,7 +218,7 @@ If there are any threads blocked on 'acquire' the thread that first called
 release ∷ RLock → IO ()
 release (RLock mv) = do
   myTID ← myThreadId
-  block $ do
+  mask_ $ do
     t@(mb, lock) ← takeMVar mv
     let err msg = do putMVar mv t
                      error $ "Control.Concurrent.RLock.release: " ⊕ msg
@@ -252,10 +254,12 @@ by raising an exception, the lock is released and 'Just' the result of the
 computation is returned.
 -}
 tryWith ∷ RLock → IO α → IO (Maybe α)
-tryWith l a = block $ do
+tryWith l a = mask $ \restore → do
   acquired ← tryAcquire l
   if acquired
-    then Just <$> a `finally` release l
+    then do r ← restore a `onException` release l
+            release l
+            return $ Just r
     else return Nothing
 
 {-|
@@ -271,7 +275,7 @@ Note that @wait@ is just a convenience function defined as:
 @wait l = 'block' '$' 'acquire' l '>>' 'release' l@
 -}
 wait ∷ RLock → IO ()
-wait l = block $ acquire l >> release l
+wait l = mask_ $ acquire l >> release l
 
 
 --------------------------------------------------------------------------------

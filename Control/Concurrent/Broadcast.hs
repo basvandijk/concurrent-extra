@@ -53,7 +53,7 @@ import Control.Monad           ( (>>=), (>>), return, fail, when )
 import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , takeMVar, putMVar, readMVar, modifyMVar_
                                )
-import Control.Exception       ( block, onException )
+import Control.Exception       ( onException )
 import Data.Eq                 ( Eq )
 import Data.Either             ( Either(Left ,Right), either )
 import Data.Function           ( ($), const )
@@ -69,8 +69,8 @@ import System.IO               ( IO )
 -- from base-unicode-symbols:
 import Data.Function.Unicode   ( (∘) )
 
--- from concurrent-extra:
-import Utils                      ( purelyModifyMVar )
+-- from concurrent-extra (this package):
+import Utils                      ( purelyModifyMVar, mask_ )
 import Control.Concurrent.Timeout ( timeout )
 
 
@@ -108,7 +108,7 @@ immediately.
 @'broadcast's@ a value to the broadcast.
 -}
 listen ∷ Broadcast α → IO α
-listen (Broadcast mv) = block $ do
+listen (Broadcast mv) = mask_ $ do
   mx ← takeMVar mv
   case mx of
     Left ls → do l ← newEmptyMVar
@@ -142,7 +142,7 @@ function returns 'Nothing' without blocking.
 Negative timeouts are treated the same as a timeout of 0 &#x3bc;s.
 -}
 listenTimeout ∷ Broadcast α → Integer → IO (Maybe α)
-listenTimeout (Broadcast mv) time = block $ do
+listenTimeout (Broadcast mv) time = mask_ $ do
   mx ← takeMVar mv
   case mx of
     Left ls → do l ← newEmptyMVar

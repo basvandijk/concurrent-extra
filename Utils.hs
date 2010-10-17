@@ -1,6 +1,15 @@
-{-# LANGUAGE NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, UnicodeSyntax #-}
 
-module Utils where
+module Utils
+    ( mask
+    , mask_
+    , (∘!)
+    , void
+    , ifM
+    , purelyModifyMVar
+    , modifyIORefM
+    , modifyIORefM_
+    ) where
 
 --------------------------------------------------------------------------------
 -- Imports
@@ -8,7 +17,6 @@ module Utils where
 
 -- from base:
 import Control.Concurrent.MVar ( MVar, takeMVar, putMVar )
-import Control.Exception       ( block )
 import Control.Monad           ( Monad, return, (>>=), (>>), fail )
 import Data.Bool               ( Bool )
 import Data.Function           ( ($) )
@@ -25,6 +33,18 @@ import Data.Function.Unicode   ( (∘) )
 -- Utility functions
 --------------------------------------------------------------------------------
 
+#if MIN_VERSION_base(4,3,0)
+import Control.Exception ( mask, mask_ )
+#else
+import Control.Exception ( blocked, block, unblock )
+
+mask ∷ ((IO α → IO α) → IO β) → IO β
+mask io = blocked >>= \b → if b then io id else block $ io unblock
+
+mask_ ∷ IO α → IO α
+mask_ = block
+#endif
+
 -- | Strict function composition.
 (∘!) ∷ (β → γ) → (α → β) → (α → γ)
 f ∘! g = (f $!) ∘ g
@@ -36,7 +56,7 @@ ifM ∷ Monad m ⇒ m Bool → m α → m α → m α
 ifM c t e = c >>= \b → if b then t else e
 
 purelyModifyMVar ∷ MVar α → (α → α) → IO ()
-purelyModifyMVar mv f = block $ takeMVar mv >>= putMVar mv ∘! f
+purelyModifyMVar mv f = mask_ $ takeMVar mv >>= putMVar mv ∘! f
 
 modifyIORefM ∷ IORef α → (α → IO (α, β)) → IO β
 modifyIORefM r f = do (y, z) ← readIORef r >>= f

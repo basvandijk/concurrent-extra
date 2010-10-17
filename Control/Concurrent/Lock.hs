@@ -62,7 +62,7 @@ import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , putMVar, tryPutMVar
                                , isEmptyMVar
                                )
-import Control.Exception       ( block, bracket_, finally )
+import Control.Exception       ( bracket_, onException )
 import Control.Monad           ( Monad, return, (>>=), (>>), fail, when )
 import Data.Bool               ( Bool, not )
 #ifdef __HADDOCK__
@@ -78,6 +78,9 @@ import System.IO               ( IO )
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode   ( (∘) )
+
+-- from concurrent-extra (this package):
+import Utils                   ( mask, mask_ )
 
 
 --------------------------------------------------------------------------------
@@ -178,10 +181,12 @@ by raising an exception, the lock is released and 'Just' the result of the
 computation is returned.
 -}
 tryWith ∷ Lock → IO α → IO (Maybe α)
-tryWith l a = block $ do
+tryWith l a = mask $ \restore → do
   acquired ← tryAcquire l
   if acquired
-    then Just <$> a `finally` release l
+    then do r ← restore a `onException` release l
+            release l
+            return $ Just r
     else return Nothing
 
 {-|
@@ -197,7 +202,7 @@ Note that @wait@ is just a convenience function we can be defined as:
 @wait l = 'block' '$' 'acquire' l '>>' 'release' l@
 -}
 wait ∷ Lock → IO ()
-wait (Lock mv) = block $ takeMVar mv >> putMVar mv ()
+wait (Lock mv) = mask_ $ takeMVar mv >> putMVar mv ()
 
 
 --------------------------------------------------------------------------------
