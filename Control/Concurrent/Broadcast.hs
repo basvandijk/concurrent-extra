@@ -90,11 +90,11 @@ without blocking.
 newtype Broadcast α = Broadcast {unBroadcast ∷ MVar (Either [MVar α] α)}
     deriving (Eq, Typeable)
 
--- | @new@ Creates a broadcast in the \"silent\" state.
+-- | @new@ creates a broadcast in the \"silent\" state.
 new ∷ IO (Broadcast α)
 new = Broadcast <$> newMVar (Left [])
 
--- | @newBroadcasting x@ Creates a broadcast in the \"broadcasting @x@\" state.
+-- | @newBroadcasting x@ creates a broadcast in the \"broadcasting @x@\" state.
 newBroadcasting ∷ α → IO (Broadcast α)
 newBroadcasting x = Broadcast <$> newMVar (Right x)
 
