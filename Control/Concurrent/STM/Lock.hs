@@ -46,30 +46,34 @@ module Control.Concurrent.STM.Lock
 --------------------------------------------------------------------------------
 
 -- from base:
-import Control.Applicative     ( liftA2 )
-import Control.Exception       ( bracket_, onException )
-import Control.Monad           ( Monad, return, (>>), when )
-import Data.Bool               ( Bool, not )
+import Control.Applicative          ( liftA2 )
+import Control.Exception            ( bracket_, onException )
+import Control.Monad                ( Monad, return, (>>), when )
+import Data.Bool                    ( Bool, not )
+
 #ifdef __HADDOCK__
-import Data.Bool               ( Bool(False, True) )
+import Data.Bool                    ( Bool(False, True) )
 #endif
-import Data.Eq                 ( Eq )
-import Data.Function           ( ($) )
-import Data.Functor            ( fmap, (<$>) )
-import Data.Maybe              ( Maybe(Nothing, Just), isJust )
-import Data.Typeable           ( Typeable )
-import Prelude                 ( error )
-import System.IO               ( IO )
+
+import Data.Eq                      ( Eq )
+import Data.Function                ( ($) )
+import Data.Functor                 ( fmap, (<$>) )
+import Data.Maybe                   ( Maybe(Nothing, Just), isJust )
+import Data.Typeable                ( Typeable )
+import Prelude                      ( error )
+import System.IO                    ( IO )
 
 #if __GLASGOW_HASKELL__ < 701
-import Control.Monad           ( (>>=), fail )
+import Control.Monad                ( (>>=), fail )
 #endif
 
 -- from stm:
 import Control.Concurrent.STM       ( STM, atomically )
+
 #ifdef __HADDOCK__
 import Control.Concurrent.STM       ( retry )
 #endif
+
 import Control.Concurrent.STM.TMVar ( TMVar, newTMVar, newEmptyTMVar
                                     , takeTMVar, tryTakeTMVar
                                     , putTMVar, tryPutTMVar
@@ -77,10 +81,10 @@ import Control.Concurrent.STM.TMVar ( TMVar, newTMVar, newEmptyTMVar
                                     )
 
 -- from base-unicode-symbols:
-import Data.Function.Unicode   ( (∘) )
+import Data.Function.Unicode        ( (∘) )
 
 -- from concurrent-extra (this package):
-import Utils                   ( mask )
+import Utils                        ( mask )
 
 
 --------------------------------------------------------------------------------

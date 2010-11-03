@@ -49,30 +49,30 @@ module Control.Concurrent.Broadcast
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Monad           ( return, when )
-import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
-                               , takeMVar, putMVar, readMVar, modifyMVar_
-                               )
-import Control.Exception       ( onException )
-import Data.Eq                 ( Eq )
-import Data.Either             ( Either(Left ,Right), either )
-import Data.Function           ( ($), const )
-import Data.Functor            ( fmap, (<$>) )
-import Data.Foldable           ( for_ )
-import Data.List               ( delete, length )
-import Data.Maybe              ( Maybe(Nothing, Just), isNothing )
-import Data.Ord                ( Ord, max )
-import Data.Typeable           ( Typeable )
-import Prelude                 ( Integer, seq )
-import System.IO               ( IO )
+import Control.Monad              ( return, when )
+import Control.Concurrent.MVar    ( MVar, newMVar, newEmptyMVar
+                                  , takeMVar, putMVar, readMVar, modifyMVar_
+                                  )
+import Control.Exception          ( onException )
+import Data.Eq                    ( Eq )
+import Data.Either                ( Either(Left ,Right), either )
+import Data.Function              ( ($), const )
+import Data.Functor               ( fmap, (<$>) )
+import Data.Foldable              ( for_ )
+import Data.List                  ( delete, length )
+import Data.Maybe                 ( Maybe(Nothing, Just), isNothing )
+import Data.Ord                   ( Ord, max )
+import Data.Typeable              ( Typeable )
+import Prelude                    ( Integer, seq )
+import System.IO                  ( IO )
 
 #if __GLASGOW_HASKELL__ < 701
-import Prelude                 ( fromInteger )
-import Control.Monad           ( (>>=), (>>), fail )
+import Prelude                    ( fromInteger )
+import Control.Monad              ( (>>=), (>>), fail )
 #endif
 
 -- from base-unicode-symbols:
-import Data.Function.Unicode   ( (∘) )
+import Data.Function.Unicode      ( (∘) )
 
 -- from concurrent-extra (this package):
 import Utils                      ( purelyModifyMVar, mask_ )

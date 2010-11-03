@@ -63,9 +63,11 @@ import Data.Eq                 ( Eq )
 import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( isJust )
 import Data.Typeable           ( Typeable )
+
 #ifdef __HADDOCK__
 import Control.Exception       ( block )
 #endif
+
 import Prelude                 ( Integer )
 import System.IO               ( IO )
 
@@ -75,10 +77,10 @@ import Data.Function.Unicode   ( (∘) )
 -- from concurrent-extra (this package):
 import           Control.Concurrent.Broadcast ( Broadcast )
 import qualified Control.Concurrent.Broadcast as Broadcast
-    ( new, newBroadcasting
-    , listen, tryListen, listenTimeout
-    , broadcast, signal, silence
-    )
+                               ( new, newBroadcasting
+                               , listen, tryListen, listenTimeout
+                               , broadcast, signal, silence
+                               )
 
 
 -------------------------------------------------------------------------------
