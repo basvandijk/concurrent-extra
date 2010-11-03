@@ -17,13 +17,17 @@ module Utils
 
 -- from base:
 import Control.Concurrent.MVar ( MVar, takeMVar, putMVar )
-import Control.Monad           ( Monad, return, (>>=), (>>), fail )
+import Control.Monad           ( Monad, return, (>>=) )
 import Data.Bool               ( Bool )
 import Data.Function           ( ($) )
 import Data.Functor            ( Functor, (<$) )
 import Data.IORef              ( IORef, readIORef, writeIORef )
 import Prelude                 ( ($!) )
 import System.IO               ( IO )
+
+#if __GLASGOW_HASKELL__ < 701
+import Control.Monad           ( (>>), fail )
+#endif
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode   ( (∘) )

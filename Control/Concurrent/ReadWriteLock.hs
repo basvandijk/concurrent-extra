@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveDataTypeable
+{-# LANGUAGE CPP
+           , DeriveDataTypeable
            , NamedFieldPuns
            , NoImplicitPrelude
            , UnicodeSyntax
@@ -70,7 +71,7 @@ module Control.Concurrent.ReadWriteLock
 import Control.Applicative     ( liftA2, liftA3 )
 import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar, swapMVar )
 import Control.Exception       ( bracket_, onException )
-import Control.Monad           ( return, (>>=), return, fail, (>>), when )
+import Control.Monad           ( return, return, (>>), when )
 import Data.Bool               ( Bool(False, True) )
 import Data.Char               ( String )
 import Data.Eq                 ( Eq, (==) )
@@ -78,8 +79,13 @@ import Data.Function           ( ($), on )
 import Data.Int                ( Int )
 import Data.Maybe              ( Maybe(Nothing, Just) )
 import Data.Typeable           ( Typeable )
-import Prelude                 ( ($!), fromInteger, succ, pred, error )
+import Prelude                 ( ($!), succ, pred, error )
 import System.IO               ( IO )
+
+#if __GLASGOW_HASKELL__ < 701
+import Prelude                 ( fromInteger )
+import Control.Monad           ( (>>=), fail )
+#endif
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode   ( (∘) )

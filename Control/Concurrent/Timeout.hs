@@ -25,7 +25,7 @@ module Control.Concurrent.Timeout ( timeout ) where
 -- from base:
 import Control.Concurrent ( forkIO, myThreadId, throwTo, killThread )
 import Control.Exception  ( Exception, bracket, handleJust )
-import Control.Monad      ( return, (>>=), fail, (>>) )
+import Control.Monad      ( return, (>>) )
 import Data.Bool          ( otherwise )
 import Data.Eq            ( Eq )
 import Data.Functor       ( fmap )
@@ -33,10 +33,14 @@ import Data.Maybe         ( Maybe(Nothing, Just) )
 import Data.Ord           ( (<) )
 import Data.Typeable      ( Typeable )
 import Data.Unique        ( Unique, newUnique )
-import Prelude            ( Integer, fromInteger
-                          )
+import Prelude            ( Integer )
 import System.IO          ( IO )
 import Text.Show          ( Show, show )
+
+#if __GLASGOW_HASKELL__ < 701
+import Prelude            ( fromInteger )
+import Control.Monad      ( (>>=), fail )
+#endif
 
 #ifdef __HADDOCK__
 import Data.Int  ( Int )

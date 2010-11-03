@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns
+{-# LANGUAGE CPP
+           , BangPatterns
            , DeriveDataTypeable
            , NoImplicitPrelude
            , UnicodeSyntax
@@ -66,7 +67,7 @@ import Control.Applicative     ( liftA2 )
 import Control.Concurrent      ( ThreadId, myThreadId )
 import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, readMVar, putMVar )
 import Control.Exception       ( bracket_, onException )
-import Control.Monad           ( Monad, return, (>>=), fail, (>>) )
+import Control.Monad           ( Monad, return, (>>) )
 import Data.Bool               ( Bool(False, True), otherwise )
 import Data.Eq                 ( Eq )
 import Data.Function           ( ($) )
@@ -74,8 +75,13 @@ import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( Maybe(Nothing, Just) )
 import Data.Tuple              ( fst )
 import Data.Typeable           ( Typeable )
-import Prelude                 ( Integer, fromInteger, succ, pred, error )
+import Prelude                 ( Integer, succ, pred, error )
 import System.IO               ( IO )
+
+#if __GLASGOW_HASKELL__ < 701
+import Prelude                 ( fromInteger )
+import Control.Monad           ( fail, (>>=) )
+#endif
 
 -- from base-unicode-symbols:
 import Data.Eq.Unicode         ( (≡) )

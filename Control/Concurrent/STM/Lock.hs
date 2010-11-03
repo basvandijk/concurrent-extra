@@ -48,7 +48,7 @@ module Control.Concurrent.STM.Lock
 -- from base:
 import Control.Applicative     ( liftA2 )
 import Control.Exception       ( bracket_, onException )
-import Control.Monad           ( Monad, return, (>>=), (>>), fail, when )
+import Control.Monad           ( Monad, return, (>>), when )
 import Data.Bool               ( Bool, not )
 #ifdef __HADDOCK__
 import Data.Bool               ( Bool(False, True) )
@@ -60,6 +60,10 @@ import Data.Maybe              ( Maybe(Nothing, Just), isJust )
 import Data.Typeable           ( Typeable )
 import Prelude                 ( error )
 import System.IO               ( IO )
+
+#if __GLASGOW_HASKELL__ < 701
+import Control.Monad           ( (>>=), fail )
+#endif
 
 -- from stm:
 import Control.Concurrent.STM       ( STM, atomically )

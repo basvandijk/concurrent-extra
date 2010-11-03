@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
 -------------------------------------------------------------------------------
 -- |
@@ -49,7 +49,7 @@ module Control.Concurrent.Broadcast
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Monad           ( (>>=), (>>), return, fail, when )
+import Control.Monad           ( return, when )
 import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , takeMVar, putMVar, readMVar, modifyMVar_
                                )
@@ -63,8 +63,13 @@ import Data.List               ( delete, length )
 import Data.Maybe              ( Maybe(Nothing, Just), isNothing )
 import Data.Ord                ( Ord, max )
 import Data.Typeable           ( Typeable )
-import Prelude                 ( Integer, fromInteger, seq )
+import Prelude                 ( Integer, seq )
 import System.IO               ( IO )
+
+#if __GLASGOW_HASKELL__ < 701
+import Prelude                 ( fromInteger )
+import Control.Monad           ( (>>=), (>>), fail )
+#endif
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode   ( (∘) )
