@@ -20,7 +20,6 @@ import Control.Concurrent.MVar ( MVar, takeMVar, putMVar )
 import Control.Monad           ( Monad, return, (>>=) )
 import Data.Bool               ( Bool )
 import Data.Function           ( ($) )
-import Data.Functor            ( Functor, (<$) )
 import Data.IORef              ( IORef, readIORef, writeIORef )
 import Prelude                 ( ($!) )
 import System.IO               ( IO )
@@ -38,24 +37,26 @@ import Data.Function.Unicode   ( (∘) )
 --------------------------------------------------------------------------------
 
 #if MIN_VERSION_base(4,3,0)
-import Control.Exception ( mask, mask_ )
+import Control.Exception       ( mask, mask_ )
+import Control.Monad           ( void )
 #else
-import Control.Exception ( blocked, block, unblock )
-import Data.Function     ( id )
+import Control.Exception       ( blocked, block, unblock )
+import Data.Function           ( id )
+import Data.Functor            ( Functor, (<$) )
 
 mask ∷ ((IO α → IO α) → IO β) → IO β
 mask io = blocked >>= \b → if b then io id else block $ io unblock
 
 mask_ ∷ IO α → IO α
 mask_ = block
+
+void ∷ Functor f ⇒ f α → f ()
+void = (() <$)
 #endif
 
 -- | Strict function composition.
 (∘!) ∷ (β → γ) → (α → β) → (α → γ)
 f ∘! g = (f $!) ∘ g
-
-void ∷ Functor f ⇒ f α → f ()
-void = (() <$)
 
 ifM ∷ Monad m ⇒ m Bool → m α → m α → m α
 ifM c t e = c >>= \b → if b then t else e
