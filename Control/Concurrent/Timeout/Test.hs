@@ -1,6 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude
-           , UnicodeSyntax
-  #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, UnicodeSyntax #-}
 
 module Control.Concurrent.Timeout.Test ( tests ) where
 
@@ -11,19 +9,22 @@ module Control.Concurrent.Timeout.Test ( tests ) where
 
 -- from base:
 import Control.Concurrent ( forkIO, killThread )
-import Control.Exception  ( block )
-import Control.Monad      ( (>>=), fail, (>>) )
 import Data.Function      ( ($) )
-import Prelude            ( fromInteger, toInteger )
+import Prelude            ( toInteger )
+
+#if __GLASGOW_HASKELL__ < 701
+import Prelude            ( fromInteger )
+import Control.Monad      ( (>>=), fail, (>>) )
+#endif
 
 -- from base-unicode-symbols:
-import Prelude.Unicode       ( (⋅) )
+import Prelude.Unicode    ( (⋅) )
 
 -- from concurrent-extra:
 import qualified Control.Concurrent.Lock   as Lock
 import Control.Concurrent.Timeout ( timeout )
 import TestUtils ( a_moment, within )
-import Utils ( void )
+import Utils ( void, mask_ )
 
 -- from HUnit:
 import Test.HUnit ( Assertion, assert )
@@ -45,7 +46,7 @@ tests = [ testCase "timeout exception" test_timeout_exception ]
 test_timeout_exception ∷ Assertion
 test_timeout_exception = assert $ within (10 ⋅ a_moment) $ do
   l ← Lock.newAcquired
-  tid ← block $ forkIO $
+  tid ← mask_ $ forkIO $
           void $ timeout (toInteger $ 1000 ⋅ a_moment) $ Lock.acquire l
   killThread tid
   Lock.release l

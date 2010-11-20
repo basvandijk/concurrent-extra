@@ -1,4 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude
+{-# LANGUAGE CPP
+           , NoImplicitPrelude
            , ScopedTypeVariables
            , UnicodeSyntax  
   #-}
@@ -14,15 +15,19 @@ module TestUtils where
 import Control.Applicative ( (<$>) )
 import Control.Concurrent  ( threadDelay )
 import Control.Exception   ( try, SomeException )
-import Control.Monad       ( (>>=), return, fail )
+import Control.Monad       ( return )
 import Data.Bool           ( Bool, not )
 import Data.Char           ( String )
 import Data.Either         ( Either(Left, Right) )
 import Data.Int            ( Int )
 import Data.Maybe          ( isJust )
-import Prelude             ( fromInteger )
 import System.IO           ( IO )
 import System.Timeout      ( timeout )
+
+#if __GLASGOW_HASKELL__ < 701
+import Prelude             ( fromInteger )
+import Control.Monad       ( (>>=), fail )
+#endif
 
 -- from HUnit:
 import Test.HUnit          ( Assertion, assertFailure )

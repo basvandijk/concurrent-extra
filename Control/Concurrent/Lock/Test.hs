@@ -1,4 +1,5 @@
-{-# LANGUAGE NoImplicitPrelude
+{-# LANGUAGE CPP
+           , NoImplicitPrelude
            , UnicodeSyntax
            , ScopedTypeVariables
   #-}
@@ -11,13 +12,16 @@ module Control.Concurrent.Lock.Test ( tests ) where
 
 -- from base:
 import Control.Concurrent ( forkIO )
-import Control.Monad      ( return, (>>=), fail, (>>) )
+import Control.Monad      ( return, (>>=), (>>) )
 import Data.Bool          ( Bool(False, True), not, (&&) )
 import Data.Function      ( ($) )
 import Data.Functor       ( fmap )
 import Data.IORef         ( newIORef, writeIORef, readIORef )
-import Prelude            ( fromInteger )
 
+#if __GLASGOW_HASKELL__ < 701
+import Prelude            ( fromInteger )
+import Control.Monad      ( fail )
+#endif
 
 -- from base-unicode-symbols:
 import Data.Function.Unicode ( (∘) )

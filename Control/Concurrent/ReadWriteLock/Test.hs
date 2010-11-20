@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude , UnicodeSyntax #-}
+{-# LANGUAGE CPP, NoImplicitPrelude , UnicodeSyntax #-}
 
 module Control.Concurrent.ReadWriteLock.Test ( tests ) where
 
@@ -8,10 +8,14 @@ module Control.Concurrent.ReadWriteLock.Test ( tests ) where
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Monad      ( (>>=), (>>), fail )
+import Control.Monad      ( (>>) )
 import Control.Concurrent ( forkIO, threadDelay )
 import Data.Function      ( ($) )
+
+#if __GLASGOW_HASKELL__ < 701
 import Prelude            ( fromInteger )
+import Control.Monad      ( (>>=), fail )
+#endif
 
 -- from base-unicode-symbols:
 import Prelude.Unicode    ( (⋅) )

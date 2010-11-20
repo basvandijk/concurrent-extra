@@ -1,7 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude
-           , UnicodeSyntax
-           , ScopedTypeVariables
-  #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, UnicodeSyntax, ScopedTypeVariables #-}
 
 module Control.Concurrent.Event.Test ( tests ) where
 
@@ -12,12 +9,15 @@ module Control.Concurrent.Event.Test ( tests ) where
 -- from base:
 import Control.Exception  ( catch, throwTo, ErrorCall(..) )
 import Control.Concurrent ( forkIO )
-import Control.Monad      ( return, (>>=), fail, (>>)
-                          , mapM_, replicateM, replicateM_
-                          )
+import Control.Monad      ( return, mapM_, replicateM, replicateM_ )
 import Data.Function      ( ($) )
 import Data.Int           ( Int )
-import Prelude            ( fromInteger, toInteger )
+import Prelude            ( toInteger )
+
+#if __GLASGOW_HASKELL__ < 701
+import Prelude            ( fromInteger )
+import Control.Monad      ( (>>=), (>>), fail )
+#endif
 
 -- from base-unicode-symbols:
 import Prelude.Unicode ( (⋅) )
