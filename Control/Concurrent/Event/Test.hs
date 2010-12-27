@@ -14,7 +14,7 @@ import Data.Function      ( ($) )
 import Data.Int           ( Int )
 import Prelude            ( toInteger )
 
-#if __GLASGOW_HASKELL__ < 701
+#if __GLASGOW_HASKELL__ < 700
 import Prelude            ( fromInteger )
 import Control.Monad      ( (>>=), (>>), fail )
 #endif

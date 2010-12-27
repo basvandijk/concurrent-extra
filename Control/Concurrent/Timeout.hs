@@ -37,7 +37,7 @@ import Prelude                  ( Integer )
 import System.IO                ( IO )
 import Text.Show                ( Show, show )
 
-#if __GLASGOW_HASKELL__ < 701
+#if __GLASGOW_HASKELL__ < 700
 import Prelude                  ( fromInteger )
 import Control.Monad            ( (>>=), fail )
 #endif

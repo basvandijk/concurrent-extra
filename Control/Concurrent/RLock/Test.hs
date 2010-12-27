@@ -17,7 +17,7 @@ import Control.Monad      ( replicateM_ )
 import Data.Function      ( ($) )
 import Data.Int           ( Int )
 
-#if __GLASGOW_HASKELL__ < 701
+#if __GLASGOW_HASKELL__ < 700
 import Prelude            ( fromInteger )
 import Control.Monad      ( (>>=), fail, (>>) )
 #endif

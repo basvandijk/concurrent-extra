@@ -82,7 +82,7 @@ import Data.Typeable           ( Typeable )
 import Prelude                 ( ($!), succ, pred, error )
 import System.IO               ( IO )
 
-#if __GLASGOW_HASKELL__ < 701
+#if __GLASGOW_HASKELL__ < 700
 import Prelude                 ( fromInteger )
 import Control.Monad           ( (>>=), fail )
 #endif

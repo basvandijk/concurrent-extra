@@ -12,7 +12,7 @@ import Control.Monad      ( (>>) )
 import Control.Concurrent ( forkIO, threadDelay )
 import Data.Function      ( ($) )
 
-#if __GLASGOW_HASKELL__ < 701
+#if __GLASGOW_HASKELL__ < 700
 import Prelude            ( fromInteger )
 import Control.Monad      ( (>>=), fail )
 #endif

@@ -18,7 +18,7 @@ import Data.Function      ( ($) )
 import Data.Functor       ( fmap )
 import Data.IORef         ( newIORef, writeIORef, readIORef )
 
-#if __GLASGOW_HASKELL__ < 701
+#if __GLASGOW_HASKELL__ < 700
 import Prelude            ( fromInteger )
 import Control.Monad      ( fail )
 #endif

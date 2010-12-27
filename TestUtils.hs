@@ -24,7 +24,7 @@ import Data.Maybe          ( isJust )
 import System.IO           ( IO )
 import System.Timeout      ( timeout )
 
-#if __GLASGOW_HASKELL__ < 701
+#if __GLASGOW_HASKELL__ < 700
 import Prelude             ( fromInteger )
 import Control.Monad       ( (>>=), fail )
 #endif

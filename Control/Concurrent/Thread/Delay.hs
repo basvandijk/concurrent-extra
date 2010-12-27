@@ -27,7 +27,7 @@ import Data.Ord           ( min )
 import Prelude            ( Integer, toInteger, fromInteger, maxBound, (-) )
 import System.IO          ( IO )
 
-#if __GLASGOW_HASKELL__ < 701
+#if __GLASGOW_HASKELL__ < 700
 import Control.Monad      ( (>>) )
 #endif
 
