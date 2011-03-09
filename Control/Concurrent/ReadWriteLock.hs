@@ -246,7 +246,7 @@ tryWithRead l a = mask $ \restore → do
 
 Note that @waitRead@ is just a convenience function defined as:
 
-@waitRead l = 'block' '$' 'acquireRead' l '>>' 'releaseRead' l@
+@waitRead l = 'mask_' '$' 'acquireRead' l '>>' 'releaseRead' l@
 -}
 waitRead ∷ RWLock → IO ()
 waitRead l = mask_ $ acquireRead l >> releaseRead l
@@ -348,7 +348,7 @@ tryWithWrite l a = mask $ \restore → do
 
 Note that @waitWrite@ is just a convenience function defined as:
 
-@waitWrite l = 'block' '$' 'acquireWrite' l '>>' 'releaseWrite' l@
+@waitWrite l = 'mask_' '$' 'acquireWrite' l '>>' 'releaseWrite' l@
 -}
 waitWrite ∷ RWLock → IO ()
 waitWrite l = mask_ $ acquireWrite l >> releaseWrite l
