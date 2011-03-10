@@ -12,6 +12,7 @@ import Control.Concurrent ( forkIO )
 import Control.Monad      ( return, mapM_, replicateM, replicateM_ )
 import Data.Function      ( ($) )
 import Data.Int           ( Int )
+import Data.Bool          ( not )
 import Prelude            ( toInteger )
 
 #if __GLASGOW_HASKELL__ < 700
@@ -98,7 +99,8 @@ test_event_4 = assert $ within (10 ⋅ a_moment) $ do
 test_event_5 ∷ Assertion
 test_event_5 = assert $ within (10 ⋅ a_moment) $ do
   e ← Event.new
-  Event.waitTimeout e $ toInteger a_moment
+  notTimedOut ← Event.waitTimeout e $ toInteger a_moment
+  return $ not notTimedOut
 
 test_event_6 ∷ Assertion
 test_event_6 = assert $ notWithin (10 ⋅ a_moment) $ do
