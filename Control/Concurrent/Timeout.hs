@@ -66,7 +66,7 @@ package base-4.2.0.0.
 (c) The University of Glasgow 2007
 -}
 
-data Timeout = Timeout Unique deriving (Eq, Typeable)
+newtype Timeout = Timeout Unique deriving (Eq, Typeable)
 
 instance Show Timeout where
     show _ = "<<timeout>>"
