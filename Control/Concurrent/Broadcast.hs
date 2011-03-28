@@ -156,8 +156,8 @@ listenTimeout (Broadcast mv) time = mask_ $ do
                       `onException` deleteReader l
                  when (isNothing my) (deleteReader l)
                  return my
-    Right x  → do putMVar mv mx
-                  return $ Just x
+    Right x → do putMVar mv mx
+                 return $ Just x
     where
       deleteReader l = do mx ← takeMVar mv
                           case mx of
