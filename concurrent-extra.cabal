@@ -1,6 +1,6 @@
 name:          concurrent-extra
 version:       0.7
-cabal-version: >= 1.9.2
+cabal-version: >= 1.8
 build-type:    Custom
 stability:     experimental
 author:        Bas van Dijk <v.dijk.bas@gmail.com>
