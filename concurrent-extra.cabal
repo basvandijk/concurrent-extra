@@ -1,5 +1,5 @@
 name:          concurrent-extra
-version:       0.7
+version:       0.7.0.1
 cabal-version: >= 1.8
 build-type:    Custom
 stability:     experimental
@@ -40,8 +40,8 @@ description:
   Python.
 
 source-repository head
-  Type: darcs
-  Location: http://code.haskell.org/concurrent-extra
+  Type: git
+  Location: git://github.com/basvandijk/concurrent-extra.git
 
 -------------------------------------------------------------------------------
 
