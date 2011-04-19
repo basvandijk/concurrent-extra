@@ -8,7 +8,7 @@
 -------------------------------------------------------------------------------
 -- |
 -- Module     : Control.Concurrent.ReadWriteVar
--- Copyright  : (c) 2010 Bas van Dijk & Roel van Dijk
+-- Copyright  : 2010—2011 Bas van Dijk & Roel van Dijk
 -- License    : BSD3 (see the file LICENSE)
 -- Maintainer : Bas van Dijk <v.dijk.bas@gmail.com>
 --            , Roel van Dijk <vandijk.roel@gmail.com>
@@ -18,9 +18,10 @@
 -- can be read and used by multiple threads at the same time. Concurrent
 -- computations inside a 'with' \"block\" observe the same value.
 --
--- Observing and changing the contents of an 'RWVar' are mutually exclusive. The
--- 'with' function will block if 'modify' is active and vice-versa. Furthermore
--- 'with' is fully sequential and will also block on concurrent calls of 'with'.
+-- Observing and changing the contents of an 'RWVar' are mutually
+-- exclusive. The 'with' function will block if 'modify' is active and
+-- vice-versa. Furthermore 'with' is fully sequential and will also
+-- block on concurrent calls of 'modify'.
 --
 -- The following are guaranteed deadlocks:
 --
@@ -62,23 +63,23 @@ module Control.Concurrent.ReadWriteVar
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Applicative     ( liftA2 )
-import Control.Monad           ( (>>=) )
-import Data.Bool               ( Bool(..) )
-import Data.Eq                 ( Eq, (==) )
-import Data.Function           ( ($), on )
-import Data.Functor            ( fmap  )
-import Data.Maybe              ( Maybe(..), isJust )
-import Data.IORef              ( IORef, newIORef, readIORef )
-import Data.Typeable           ( Typeable )
-import System.IO               ( IO )
+import Control.Applicative ( liftA2 )
+import Control.Monad       ( (>>=) )
+import Data.Bool           ( Bool(..) )
+import Data.Eq             ( Eq, (==) )
+import Data.Function       ( ($), on )
+import Data.Functor        ( fmap  )
+import Data.Maybe          ( Maybe(..), isJust )
+import Data.IORef          ( IORef, newIORef, readIORef )
+import Data.Typeable       ( Typeable )
+import System.IO           ( IO )
 #ifdef __HADDOCK__
-import Data.Function           ( const )
-import Prelude                 ( undefined )
+import Data.Function       ( const )
+import Prelude             ( undefined )
 #endif
 
 -- from base-unicode-symbols:
-import Data.Function.Unicode   ( (∘) )
+import Data.Function.Unicode ( (∘) )
 
 -- from concurrent-extra (this package):
 import           Control.Concurrent.ReadWriteLock ( RWLock )
