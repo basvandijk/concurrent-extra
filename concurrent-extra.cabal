@@ -40,6 +40,8 @@ description:
   This package was inspired by the concurrency libraries of Java and
   Python.
 
+extra-source-files: README.markdown
+
 source-repository head
   Type: git
   Location: git://github.com/basvandijk/concurrent-extra.git
