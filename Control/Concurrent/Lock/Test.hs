@@ -101,6 +101,3 @@ test_lock_8 = assert $ do
   set ← readIORef ioRef
   locked ← Lock.locked l
   return $ set && not locked
-
-
--- The End ---------------------------------------------------------------------

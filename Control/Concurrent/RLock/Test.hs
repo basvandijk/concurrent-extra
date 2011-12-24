@@ -81,6 +81,3 @@ test_rlock_2 = assert ∘ within (20 ⋅ a_moment) $ do
 
   Event.wait t1_done
   Event.wait t2_done
-
-
--- The End ---------------------------------------------------------------------

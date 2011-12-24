@@ -178,6 +178,3 @@ state is changed to \"cleared\" will block until the state is changed to \"set\"
 -}
 clear ∷ Event → IO ()
 clear = Broadcast.silence ∘ evBroadcast
-
-
--- The End ---------------------------------------------------------------------

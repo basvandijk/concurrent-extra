@@ -354,6 +354,3 @@ waitWrite l = mask_ $ acquireWrite l >> releaseWrite l
 
 moduleName ∷ String
 moduleName = "Control.Concurrent.ReadWriteLock"
-
-
--- The End --------------------------------------------------------------------

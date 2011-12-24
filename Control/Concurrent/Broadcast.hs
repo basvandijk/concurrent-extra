@@ -205,6 +205,3 @@ broadcastThen finalState (Broadcast mv) x =
 -- | Set a broadcast to the \"silent\" state.
 silence ∷ Broadcast α → IO ()
 silence (Broadcast mv) = purelyModifyMVar mv $ either Left $ const $ Left []
-
-
--- The End ---------------------------------------------------------------------

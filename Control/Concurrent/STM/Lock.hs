@@ -199,6 +199,3 @@ on its result it may already be out of date.
 -}
 locked ∷ Lock → STM Bool
 locked = isEmptyTMVar ∘ un
-
-
--- The End ---------------------------------------------------------------------

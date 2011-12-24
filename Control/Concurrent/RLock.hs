@@ -296,6 +296,3 @@ its result it may already be out of date.
 -}
 state ∷ RLock → IO State
 state = fmap fst ∘ readMVar ∘ un
-
-
--- The End ---------------------------------------------------------------------

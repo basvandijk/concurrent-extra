@@ -106,6 +106,3 @@ test_event_6 ∷ Assertion
 test_event_6 = assert $ notWithin (10 ⋅ a_moment) $ do
   e ← Event.new
   Event.wait e
-
-
--- The End ---------------------------------------------------------------------

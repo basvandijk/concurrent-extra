@@ -90,6 +90,3 @@ test2 = assert $ within (10 ⋅ a_moment) $ do
           -- The read-write-lock should now be in the "Free" state so the
           -- following shouldn't deadlock:
           RWLock.acquireRead rwl
-
-
--- The End ---------------------------------------------------------------------

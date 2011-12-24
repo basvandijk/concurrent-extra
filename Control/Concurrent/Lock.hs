@@ -221,6 +221,3 @@ on its result it may already be out of date.
 -}
 locked ∷ Lock → IO Bool
 locked = isEmptyMVar ∘ un
-
-
--- The End ---------------------------------------------------------------------

@@ -153,6 +153,3 @@ contents could be replaced, 'Nothing' otherwise.
 -}
 tryModify ∷ RWVar α → (α → IO (α, β)) → IO (Maybe β)
 tryModify (RWVar l r) = RWLock.tryWithWrite l ∘ modifyIORefM r
-
-
--- The End --------------------------------------------------------------------

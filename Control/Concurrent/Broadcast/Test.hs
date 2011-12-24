@@ -35,6 +35,3 @@ import Test.Framework.Providers.HUnit ( )
 
 tests ∷ [Test]
 tests = []
-
-
--- The End ---------------------------------------------------------------------
