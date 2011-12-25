@@ -1,5 +1,9 @@
 {-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
 
+#if __GLASGOW_HASKELL__ >= 704
+{-# LANGUAGE Trustworthy #-}
+#endif
+
 --------------------------------------------------------------------------------
 -- |
 -- Module     : Control.Concurrent.STM.Lock

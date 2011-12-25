@@ -5,6 +5,10 @@
            , UnicodeSyntax
   #-}
 
+#if __GLASGOW_HASKELL__ >= 704
+{-# LANGUAGE Safe #-}
+#endif
+
 -------------------------------------------------------------------------------
 -- |
 -- Module     : Control.Concurrent.ReadWriteVar
