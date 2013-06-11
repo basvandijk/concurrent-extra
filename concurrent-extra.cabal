@@ -1,5 +1,5 @@
 name:          concurrent-extra
-version:       0.7.0.5
+version:       0.7.0.6
 cabal-version: >= 1.8
 build-type:    Custom
 stability:     experimental
@@ -78,7 +78,7 @@ test-suite test-concurrent-extra
                , Control.Concurrent.ReadWriteVar.Test
                , TestUtils
 
-  ghc-options: -Wall
+  ghc-options: -Wall -threaded
 
   build-depends: base                 >= 3       && < 4.7
                , base-unicode-symbols >= 0.1.1   && < 0.3

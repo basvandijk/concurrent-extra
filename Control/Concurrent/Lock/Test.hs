@@ -85,7 +85,7 @@ test_lock_6 = assert $ do
   fmap not $ Lock.locked l
 
 test_lock_7 ∷ Assertion
-test_lock_7 = assert ∘ within (10 ⋅ a_moment) $ do
+test_lock_7 = assert ∘ within (1000 ⋅ a_moment) $ do
   l ← Lock.newAcquired
   _ ← forkIO $ wait_a_moment >> Lock.release l
   Lock.acquire l
