@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude #-}
 
 #if __GLASGOW_HASKELL__ >= 704
 {-# LANGUAGE Trustworthy #-}
@@ -52,7 +52,7 @@ module Control.Concurrent.STM.Lock
 -- from base:
 import Control.Applicative          ( liftA2 )
 import Control.Exception            ( bracket_, onException )
-import Control.Monad                ( Monad, return, (>>), when )
+import Control.Monad                ( return, (>>), when )
 import Data.Bool                    ( Bool, not )
 
 #ifdef __HADDOCK__
@@ -60,7 +60,7 @@ import Data.Bool                    ( Bool(False, True) )
 #endif
 
 import Data.Eq                      ( Eq )
-import Data.Function                ( ($) )
+import Data.Function                ( ($), (.) )
 import Data.Functor                 ( fmap, (<$>) )
 import Data.Maybe                   ( Maybe(Nothing, Just), isJust )
 import Data.Typeable                ( Typeable )
@@ -69,6 +69,10 @@ import System.IO                    ( IO )
 
 #if __GLASGOW_HASKELL__ < 700
 import Control.Monad                ( (>>=), fail )
+#endif
+
+#if __GLASGOW_HASKELL__ < 700
+import Control.Monad                ( Monad )
 #endif
 
 -- from stm:
@@ -84,9 +88,6 @@ import Control.Concurrent.STM.TMVar ( TMVar, newTMVar, newEmptyTMVar
                                     , isEmptyTMVar
                                     )
 
--- from base-unicode-symbols:
-import Data.Function.Unicode        ( (∘) )
-
 -- from concurrent-extra (this package):
 import Utils                        ( mask )
 
@@ -96,7 +97,7 @@ import Utils                        ( mask )
 --------------------------------------------------------------------------------
 
 -- | A lock is in one of two states: \"locked\" or \"unlocked\".
-newtype Lock = Lock {un ∷ TMVar ()}
+newtype Lock = Lock {un :: TMVar ()}
     deriving (Typeable, Eq)
 
 
@@ -105,11 +106,11 @@ newtype Lock = Lock {un ∷ TMVar ()}
 --------------------------------------------------------------------------------
 
 -- | Create a lock in the \"unlocked\" state.
-new ∷ STM Lock
+new :: STM Lock
 new = Lock <$> newTMVar ()
 
 -- | Create a lock in the \"locked\" state.
-newAcquired ∷ STM Lock
+newAcquired :: STM Lock
 newAcquired = Lock <$> newEmptyTMVar
 
 
@@ -122,8 +123,8 @@ newAcquired = Lock <$> newEmptyTMVar
 
 * When the state is \"unlocked\" @acquire@ will change the state to \"locked\".
 -}
-acquire ∷ Lock → STM ()
-acquire = takeTMVar ∘ un
+acquire :: Lock -> STM ()
+acquire = takeTMVar . un
 
 {-|
 A non-blocking 'acquire'.
@@ -134,17 +135,17 @@ and returns 'True'.
 * When the state is \"locked\" @tryAcquire@ leaves the state unchanged and
 returns 'False'.
 -}
-tryAcquire ∷ Lock → STM Bool
-tryAcquire = fmap isJust ∘ tryTakeTMVar ∘ un
+tryAcquire :: Lock -> STM Bool
+tryAcquire = fmap isJust . tryTakeTMVar . un
 
 {-|
 @release@ changes the state to \"unlocked\" and returns immediately.
 
 Note that it is an error to release a lock in the \"unlocked\" state!
 -}
-release ∷ Lock → STM ()
+release :: Lock -> STM ()
 release (Lock tmv) = do
-  b ← tryPutTMVar tmv ()
+  b <- tryPutTMVar tmv ()
   when (not b) $ error "Control.Concurrent.STM.Lock.release: Can't release unlocked Lock!"
 
 
@@ -157,8 +158,8 @@ A convenience function which first acquires the lock and then performs the
 computation. When the computation terminates, whether normally or by raising an
 exception, the lock is released.
 -}
-with ∷ Lock → IO a → IO a
-with = liftA2 bracket_ (atomically ∘ acquire) (atomically ∘ release)
+with :: Lock -> IO a -> IO a
+with = liftA2 bracket_ (atomically . acquire) (atomically . release)
 
 {-|
 A non-blocking 'with'. @tryWith@ is a convenience function which first tries to
@@ -167,11 +168,11 @@ computation is performed. When the computation terminates, whether normally or
 by raising an exception, the lock is released and 'Just' the result of the
 computation is returned.
 -}
-tryWith ∷ Lock → IO α → IO (Maybe α)
-tryWith l a = mask $ \restore → do
-  acquired ← atomically (tryAcquire l)
+tryWith :: Lock -> IO a -> IO (Maybe a)
+tryWith l a = mask $ \restore -> do
+  acquired <- atomically (tryAcquire l)
   if acquired
-    then do r ← restore a `onException` atomically (release l)
+    then do r <- restore a `onException` atomically (release l)
             atomically (release l)
             return $ Just r
     else return Nothing
@@ -187,7 +188,7 @@ Note that @wait@ is just a convenience function which can be defined as:
 
 @wait l = 'acquire' l '>>' 'release' l@
 -}
-wait ∷ Lock → STM ()
+wait :: Lock -> STM ()
 wait (Lock tmv) = takeTMVar tmv >> putTMVar tmv ()
 
 
@@ -201,5 +202,5 @@ Determines if the lock is in the \"locked\" state.
 Note that this is only a snapshot of the state. By the time a program reacts
 on its result it may already be out of date.
 -}
-locked ∷ Lock → STM Bool
-locked = isEmptyTMVar ∘ un
+locked :: Lock -> STM Bool
+locked = isEmptyTMVar . un

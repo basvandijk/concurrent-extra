@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, NoImplicitPrelude, UnicodeSyntax, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, NoImplicitPrelude, ScopedTypeVariables #-}
 
 module Control.Concurrent.Event.Test ( tests ) where
 
@@ -13,15 +13,12 @@ import Control.Monad      ( return, mapM_, replicateM, replicateM_ )
 import Data.Function      ( ($) )
 import Data.Int           ( Int )
 import Data.Bool          ( not )
-import Prelude            ( toInteger )
+import Prelude            ( toInteger, (*) )
 
 #if __GLASGOW_HASKELL__ < 700
 import Prelude            ( fromInteger )
 import Control.Monad      ( (>>=), (>>), fail )
 #endif
-
--- from base-unicode-symbols:
-import Prelude.Unicode ( (⋅) )
 
 -- from concurrent-extra:
 import qualified Control.Concurrent.Event as Event
@@ -41,7 +38,7 @@ import Test.Framework.Providers.HUnit ( testCase )
 -- Tests for Event
 -------------------------------------------------------------------------------
 
-tests ∷ [Test]
+tests :: [Test]
 tests = [ testCase "set wait a"    $ test_event_1 1 1
         , testCase "set wait b"    $ test_event_1 5 1
         , testCase "set wait c"    $ test_event_1 1 5
@@ -55,17 +52,17 @@ tests = [ testCase "set wait a"    $ test_event_1 1 1
 
 -- Set an event 's' times then wait for it 'w' times. This should
 -- terminate within a few moments.
-test_event_1 ∷ Int → Int → Assertion
-test_event_1 s w = assert $ within (10 ⋅ a_moment) $ do
-  e ← Event.new
+test_event_1 :: Int -> Int -> Assertion
+test_event_1 s w = assert $ within (10 * a_moment) $ do
+  e <- Event.new
   replicateM_ s $ Event.set  e
   replicateM_ w $ Event.wait e
 
-test_event_2 ∷ Assertion
-test_event_2 = assert $ within (10 ⋅ a_moment) $ do
-  e1 ← Event.new
-  e2 ← Event.new
-  _ ← forkIO $ do
+test_event_2 :: Assertion
+test_event_2 = assert $ within (10 * a_moment) $ do
+  e1 <- Event.new
+  e2 <- Event.new
+  _ <- forkIO $ do
     Event.wait e1
     Event.set  e2
   wait_a_moment
@@ -73,12 +70,12 @@ test_event_2 = assert $ within (10 ⋅ a_moment) $ do
   Event.wait e2
 
 -- Waking multiple threads with a single Event.
-test_event_3 ∷ Int → Assertion
-test_event_3 n = assert $ within (10 ⋅ a_moment) $ do
-  e1 ← Event.new
-  es ← replicateM n $ do
-    e2 ← Event.new
-    _ ← forkIO $ do
+test_event_3 :: Int -> Assertion
+test_event_3 n = assert $ within (10 * a_moment) $ do
+  e1 <- Event.new
+  es <- replicateM n $ do
+    e2 <- Event.new
+    _ <- forkIO $ do
       Event.wait e1
       Event.set  e2
     return e2
@@ -87,22 +84,23 @@ test_event_3 n = assert $ within (10 ⋅ a_moment) $ do
   mapM_ Event.wait es
 
 -- Exception handling while waiting for an Event.
-test_event_4 ∷ Assertion
-test_event_4 = assert $ within (10 ⋅ a_moment) $ do
-  e1 ← Event.new
-  e2 ← Event.new
-  helperId ← forkIO $ catch (Event.wait e1) $ \(_ ∷ ErrorCall) → Event.set e2
+test_event_4 :: Assertion
+test_event_4 = assert $ within (10 * a_moment) $ do
+  e1 <- Event.new
+  e2 <- Event.new
+  helperId <- forkIO $ Event.wait e1 `catch` \(_ :: ErrorCall) ->
+                                                 Event.set e2
   wait_a_moment
   throwTo helperId $ ErrorCall "Boo!"
   Event.wait e2
 
-test_event_5 ∷ Assertion
-test_event_5 = assert $ within (10 ⋅ a_moment) $ do
-  e ← Event.new
-  notTimedOut ← Event.waitTimeout e $ toInteger a_moment
+test_event_5 :: Assertion
+test_event_5 = assert $ within (10 * a_moment) $ do
+  e <- Event.new
+  notTimedOut <- Event.waitTimeout e $ toInteger a_moment
   return $ not notTimedOut
 
-test_event_6 ∷ Assertion
-test_event_6 = assert $ notWithin (10 ⋅ a_moment) $ do
-  e ← Event.new
+test_event_6 :: Assertion
+test_event_6 = assert $ notWithin (10 * a_moment) $ do
+  e <- Event.new
   Event.wait e

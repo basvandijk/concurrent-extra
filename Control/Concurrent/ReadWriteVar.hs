@@ -2,7 +2,6 @@
            , DeriveDataTypeable
            , NoImplicitPrelude
            , TupleSections
-           , UnicodeSyntax
   #-}
 
 #if __GLASGOW_HASKELL__ >= 704
@@ -71,7 +70,7 @@ import Control.Applicative ( liftA2 )
 import Control.Monad       ( (>>=) )
 import Data.Bool           ( Bool(..) )
 import Data.Eq             ( Eq, (==) )
-import Data.Function       ( ($), on )
+import Data.Function       ( ($), (.), on )
 import Data.Functor        ( fmap  )
 import Data.Maybe          ( Maybe(..), isJust )
 import Data.IORef          ( IORef, newIORef, readIORef )
@@ -81,9 +80,6 @@ import System.IO           ( IO )
 import Data.Function       ( const )
 import Prelude             ( undefined )
 #endif
-
--- from base-unicode-symbols:
-import Data.Function.Unicode ( (∘) )
 
 -- from concurrent-extra (this package):
 import           Control.Concurrent.ReadWriteLock ( RWLock )
@@ -97,16 +93,16 @@ import Utils ( modifyIORefM, modifyIORefM_ )
 -------------------------------------------------------------------------------
 
 -- | Concurrently readable and sequentially writable variable.
-data RWVar α = RWVar RWLock (IORef α) deriving Typeable
+data RWVar a = RWVar RWLock (IORef a) deriving Typeable
 
-instance Eq (RWVar α) where
+instance Eq (RWVar a) where
     (==) = (==) `on` rwlock
         where
           rwlock (RWVar rwl _) = rwl
 
 -- | Create a new 'RWVar'.
-new ∷ α → IO (RWVar α)
-new = liftA2 RWVar RWLock.new ∘ newIORef
+new :: a -> IO (RWVar a)
+new = liftA2 RWVar RWLock.new . newIORef
 
 {-| Execute an action that operates on the contents of the 'RWVar'.
 
@@ -117,13 +113,13 @@ completed.
 If another thread is modifying the contents of the 'RWVar' this function will
 block until the other thread finishes its action.
 -}
-with ∷ RWVar α → (α → IO β) → IO β
+with :: RWVar a -> (a -> IO b) -> IO b
 with (RWVar l r) f = RWLock.withRead l $ readIORef r >>= f
 
 {-| Like 'with' but doesn't block. Returns 'Just' the result if read access
 could be acquired without blocking, 'Nothing' otherwise.
 -}
-tryWith ∷ RWVar α → (α → IO β) → IO (Maybe β)
+tryWith :: RWVar a -> (a -> IO b) -> IO (Maybe b)
 tryWith (RWVar l r) f = RWLock.tryWithRead l $ readIORef r >>= f
 
 {-| Modify the contents of an 'RWVar'.
@@ -131,29 +127,29 @@ tryWith (RWVar l r) f = RWLock.tryWithRead l $ readIORef r >>= f
 This function needs exclusive write access to the 'RWVar'. Only one thread can
 modify an 'RWVar' at the same time. All others will block.
 -}
-modify_ ∷ RWVar α → (α → IO α) → IO ()
-modify_ (RWVar l r) = RWLock.withWrite l ∘ modifyIORefM_ r
+modify_ :: RWVar a -> (a -> IO a) -> IO ()
+modify_ (RWVar l r) = RWLock.withWrite l . modifyIORefM_ r
 
 {-| Modify the contents of an 'RWVar' and return an additional value.
 
 Like 'modify_', but allows a value to be returned (&#x3b2;) in addition to the
 modified value of the 'RWVar'.
 -}
-modify ∷ RWVar α → (α → IO (α, β)) → IO β
-modify (RWVar l r) = RWLock.withWrite l ∘ modifyIORefM r
+modify :: RWVar a -> (a -> IO (a, b)) -> IO b
+modify (RWVar l r) = RWLock.withWrite l . modifyIORefM r
 
 {-| Attempt to modify the contents of an 'RWVar'.
 
 Like 'modify_', but doesn't block. Returns 'True' if the contents could be
 replaced, 'False' otherwise.
 -}
-tryModify_ ∷ RWVar α → (α → IO α) → IO Bool
-tryModify_ (RWVar l r) = fmap isJust ∘ RWLock.tryWithWrite l ∘ modifyIORefM_ r
+tryModify_ :: RWVar a -> (a -> IO a) -> IO Bool
+tryModify_ (RWVar l r) = fmap isJust . RWLock.tryWithWrite l . modifyIORefM_ r
 
 {-| Attempt to modify the contents of an 'RWVar' and return an additional value.
 
 Like 'modify', but doesn't block. Returns 'Just' the additional value if the
 contents could be replaced, 'Nothing' otherwise.
 -}
-tryModify ∷ RWVar α → (α → IO (α, β)) → IO (Maybe β)
-tryModify (RWVar l r) = RWLock.tryWithWrite l ∘ modifyIORefM r
+tryModify :: RWVar a -> (a -> IO (a, b)) -> IO (Maybe b)
+tryModify (RWVar l r) = RWLock.tryWithWrite l . modifyIORefM r

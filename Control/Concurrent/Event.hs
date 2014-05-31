@@ -1,7 +1,6 @@
 {-# LANGUAGE CPP
            , DeriveDataTypeable
            , NoImplicitPrelude
-           , UnicodeSyntax
   #-}
 
 #if __GLASGOW_HASKELL__ >= 704
@@ -64,6 +63,7 @@ module Control.Concurrent.Event
 -- from base:
 import Data.Bool               ( Bool(..) )
 import Data.Eq                 ( Eq )
+import Data.Function           ( (.) )
 import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( isJust )
 import Data.Typeable           ( Typeable )
@@ -74,9 +74,6 @@ import Control.Exception       ( block )
 
 import Prelude                 ( Integer )
 import System.IO               ( IO )
-
--- from base-unicode-symbols:
-import Data.Function.Unicode   ( (∘) )
 
 -- from concurrent-extra (this package):
 import           Control.Concurrent.Broadcast ( Broadcast )
@@ -92,7 +89,7 @@ import qualified Control.Concurrent.Broadcast as Broadcast
 -------------------------------------------------------------------------------
 
 -- | An event is in one of two possible states: \"set\" or \"cleared\".
-newtype Event = Event {evBroadcast ∷ Broadcast ()} deriving (Eq, Typeable)
+newtype Event = Event {evBroadcast :: Broadcast ()} deriving (Eq, Typeable)
 
 
 -------------------------------------------------------------------------------
@@ -100,11 +97,11 @@ newtype Event = Event {evBroadcast ∷ Broadcast ()} deriving (Eq, Typeable)
 -------------------------------------------------------------------------------
 
 -- | Create an event in the \"cleared\" state.
-new ∷ IO Event
+new :: IO Event
 new = Event <$> Broadcast.new
 
 -- | Create an event in the \"set\" state.
-newSet ∷ IO Event
+newSet :: IO Event
 newSet = Event <$> Broadcast.newBroadcasting ()
 
 
@@ -121,8 +118,8 @@ immediately. Otherwise it will block until another thread calls 'set'.
 (You can also resume a thread that is waiting for an event by throwing an
 asynchronous exception.)
 -}
-wait ∷ Event → IO ()
-wait = Broadcast.listen ∘ evBroadcast
+wait :: Event -> IO ()
+wait = Broadcast.listen . evBroadcast
 
 {-|
 Block until the event is 'set' or until a timer expires.
@@ -137,7 +134,7 @@ function returns 'False' without blocking.
 
 Negative timeouts are treated the same as a timeout of 0 &#x3bc;s.
 -}
-waitTimeout ∷ Event → Integer → IO Bool
+waitTimeout :: Event -> Integer -> IO Bool
 waitTimeout ev time = isJust <$> Broadcast.listenTimeout (evBroadcast ev) time
 
 {-|
@@ -147,8 +144,8 @@ is \"cleared\".
 Notice that this is only a snapshot of the state. By the time a program reacts
 on its result it may already be out of date.
 -}
-isSet ∷ Event → IO Bool
-isSet = fmap isJust ∘ Broadcast.tryListen ∘ evBroadcast
+isSet :: Event -> IO Bool
+isSet = fmap isJust . Broadcast.tryListen . evBroadcast
 
 
 -------------------------------------------------------------------------------
@@ -160,7 +157,7 @@ Changes the state of the event to \"set\". All threads that where waiting
 for this event are woken. Threads that 'wait' after the state is changed to
 \"set\" will not block at all.
 -}
-set ∷ Event → IO ()
+set :: Event -> IO ()
 set ev = Broadcast.broadcast (evBroadcast ev) ()
 
 {-|
@@ -173,12 +170,12 @@ The semantics of signal are equivalent to the following definition:
 @
   signal e = 'block' $ 'set' e >> 'clear' e
 @-}
-signal ∷ Event → IO ()
+signal :: Event -> IO ()
 signal ev = Broadcast.signal (evBroadcast ev) ()
 
 {-|
 Changes the state of the event to \"cleared\". Threads that 'wait' after the
 state is changed to \"cleared\" will block until the state is changed to \"set\".
 -}
-clear ∷ Event → IO ()
-clear = Broadcast.silence ∘ evBroadcast
+clear :: Event -> IO ()
+clear = Broadcast.silence . evBroadcast

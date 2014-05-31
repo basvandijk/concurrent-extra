@@ -2,7 +2,6 @@
            , DeriveDataTypeable
            , NamedFieldPuns
            , NoImplicitPrelude
-           , UnicodeSyntax
   #-}
 
 #if __GLASGOW_HASKELL__ >= 704
@@ -78,9 +77,10 @@ import Control.Exception       ( bracket_, onException )
 import Control.Monad           ( return, (>>) )
 import Data.Bool               ( Bool(False, True) )
 import Data.Eq                 ( Eq, (==) )
-import Data.Function           ( ($), on )
+import Data.Function           ( ($), (.), on )
 import Data.Int                ( Int )
 import Data.Maybe              ( Maybe(Nothing, Just) )
+import Data.List               ( (++))
 import Data.Typeable           ( Typeable )
 import Prelude                 ( String, ($!), succ, pred, error )
 import System.IO               ( IO )
@@ -89,10 +89,6 @@ import System.IO               ( IO )
 import Prelude                 ( fromInteger )
 import Control.Monad           ( (>>=), fail )
 #endif
-
--- from base-unicode-symbols:
-import Data.Function.Unicode   ( (∘) )
-import Data.Monoid.Unicode     ( (⊕) )
 
 -- from concurrent-extra (this package):
 import           Control.Concurrent.Lock ( Lock )
@@ -116,9 +112,9 @@ Multiple-reader, single-writer lock. Is in one of three states:
 * \"Write\": A single thread has acquired write access. Blocks other threads
 from acquiring both read and write access.
 -}
-data RWLock = RWLock { state     ∷ MVar State
-                     , readLock  ∷ Lock
-                     , writeLock ∷ Lock
+data RWLock = RWLock { state     :: MVar State
+                     , readLock  :: Lock
+                     , writeLock :: Lock
                      } deriving Typeable
 
 instance Eq RWLock where
@@ -134,21 +130,21 @@ data State = Free | Read Int | Write
 
 -- | Create a new 'RWLock' in the \"free\" state; either read or write access
 -- can be acquired without blocking.
-new ∷ IO RWLock
+new :: IO RWLock
 new = liftA3 RWLock (newMVar Free)
                     Lock.new
                     Lock.new
 
 -- | Create a new 'RWLock' in the \"read\" state; only read can be acquired
 -- without blocking.
-newAcquiredRead ∷ IO RWLock
+newAcquiredRead :: IO RWLock
 newAcquiredRead = liftA3 RWLock (newMVar $ Read 1)
                                 Lock.newAcquired
                                 Lock.new
 
 -- | Create a new 'RWLock' in the \"write\" state; either acquiring read or
 -- write will block.
-newAcquiredWrite ∷ IO RWLock
+newAcquiredWrite :: IO RWLock
 newAcquiredWrite = liftA3 RWLock (newMVar Write)
                                  Lock.new
                                  Lock.newAcquired
@@ -167,17 +163,17 @@ without throwing an exception the state of the 'RWLock' will be \"read\".
 Implementation note: Throws an exception when more than (maxBound :: Int)
 simultaneous threads acquire the read lock. But that is unlikely.
 -}
-acquireRead ∷ RWLock → IO ()
+acquireRead :: RWLock -> IO ()
 acquireRead (RWLock {state, readLock, writeLock}) = mask_ acqRead
     where
-      acqRead = do st ← takeMVar state
+      acqRead = do st <- takeMVar state
                    case st of
-                     Free   → do Lock.acquire readLock
-                                 putMVar state $ Read 1
-                     Read n → putMVar state ∘ Read $! succ n
-                     Write  → do putMVar state st
-                                 Lock.wait writeLock
-                                 acqRead
+                     Free   -> do Lock.acquire readLock
+                                  putMVar state $ Read 1
+                     Read n -> putMVar state . Read $! succ n
+                     Write  -> do putMVar state st
+                                  Lock.wait writeLock
+                                  acqRead
 
 {-|
 Try to acquire the read lock; non blocking.
@@ -185,17 +181,17 @@ Try to acquire the read lock; non blocking.
 Like 'acquireRead', but doesn't block. Returns 'True' if the resulting state is
 \"read\", 'False' otherwise.
 -}
-tryAcquireRead ∷ RWLock → IO Bool
+tryAcquireRead :: RWLock -> IO Bool
 tryAcquireRead (RWLock {state, readLock}) = mask_ $ do
-  st ← takeMVar state
+  st <- takeMVar state
   case st of
-    Free   → do Lock.acquire readLock
-                putMVar state $ Read 1
-                return True
-    Read n → do putMVar state ∘ Read $! succ n
-                return True
-    Write  → do putMVar state st
-                return False
+    Free   -> do Lock.acquire readLock
+                 putMVar state $ Read 1
+                 return True
+    Read n -> do putMVar state . Read $! succ n
+                 return True
+    Write  -> do putMVar state st
+                 return False
 
 {-|
 Release the read lock.
@@ -206,22 +202,22 @@ revert to \"free\".
 It is an error to release read access to an 'RWLock' which is not in the
 \"read\" state.
 -}
-releaseRead ∷ RWLock → IO ()
+releaseRead :: RWLock -> IO ()
 releaseRead (RWLock {state, readLock}) = mask_ $ do
-  st ← takeMVar state
+  st <- takeMVar state
   case st of
-    Read 1 → do Lock.release readLock
-                putMVar state Free
-    Read n → putMVar state ∘ Read $! pred n
-    _ → do putMVar state st
-           error $ moduleName ⊕ ".releaseRead: already released"
+    Read 1 -> do Lock.release readLock
+                 putMVar state Free
+    Read n -> putMVar state . Read $! pred n
+    _ -> do putMVar state st
+            error $ moduleName ++ ".releaseRead: already released"
 
 {-|
 A convenience function wich first acquires read access and then performs the
 computation. When the computation terminates, whether normally or by raising an
 exception, the read lock is released.
 -}
-withRead ∷ RWLock → IO α → IO α
+withRead :: RWLock -> IO a -> IO a
 withRead = liftA2 bracket_ acquireRead releaseRead
 
 {-|
@@ -230,11 +226,11 @@ A non-blocking 'withRead'. First tries to acquire the lock. If that fails,
 computation terminates, whether normally or by raising an exception, the lock is
 released and 'Just' the result of the computation is returned.
 -}
-tryWithRead ∷ RWLock → IO α → IO (Maybe α)
-tryWithRead l a = mask $ \restore → do
-  acquired ← tryAcquireRead l
+tryWithRead :: RWLock -> IO a -> IO (Maybe a)
+tryWithRead l a = mask $ \restore -> do
+  acquired <- tryAcquireRead l
   if acquired
-    then do r ← restore a `onException` releaseRead l
+    then do r <- restore a `onException` releaseRead l
             releaseRead l
             return $ Just r
     else return Nothing
@@ -251,7 +247,7 @@ Note that @waitRead@ is just a convenience function defined as:
 
 @waitRead l = 'mask_' '$' 'acquireRead' l '>>' 'releaseRead' l@
 -}
-waitRead ∷ RWLock → IO ()
+waitRead :: RWLock -> IO ()
 waitRead l = mask_ $ acquireRead l >> releaseRead l
 
 
@@ -266,19 +262,19 @@ Blocks if another thread has acquired either read or write access. If
 @acquireWrite@ terminates without throwing an exception the state of the
 'RWLock' will be \"write\".
 -}
-acquireWrite ∷ RWLock → IO ()
+acquireWrite :: RWLock -> IO ()
 acquireWrite (RWLock {state, readLock, writeLock}) = mask_ acqWrite
     where
-      acqWrite = do st ← takeMVar state
+      acqWrite = do st <- takeMVar state
                     case st of
-                      Free   → do Lock.acquire writeLock
-                                  putMVar state Write
-                      Read _ → do putMVar state st
-                                  Lock.wait readLock
-                                  acqWrite
-                      Write  → do putMVar state st
-                                  Lock.wait writeLock
-                                  acqWrite
+                      Free   -> do Lock.acquire writeLock
+                                   putMVar state Write
+                      Read _ -> do putMVar state st
+                                   Lock.wait readLock
+                                   acqWrite
+                      Write  -> do putMVar state st
+                                   Lock.wait writeLock
+                                   acqWrite
 
 {-|
 Try to acquire the write lock; non blocking.
@@ -286,15 +282,15 @@ Try to acquire the write lock; non blocking.
 Like 'acquireWrite', but doesn't block. Returns 'True' if the resulting state is
 \"write\", 'False' otherwise.
 -}
-tryAcquireWrite ∷ RWLock → IO Bool
+tryAcquireWrite :: RWLock -> IO Bool
 tryAcquireWrite (RWLock {state, writeLock}) = mask_ $ do
-  st ← takeMVar state
+  st <- takeMVar state
   case st of
-    Free   → do Lock.acquire writeLock
-                putMVar state Write
-                return True
-    _      → do putMVar state st
-                return False
+    Free   -> do Lock.acquire writeLock
+                 putMVar state Write
+                 return True
+    _      -> do putMVar state st
+                 return False
 
 {-|
 Release the write lock.
@@ -305,21 +301,21 @@ If @releaseWrite@ terminates without throwing an exception the state will be
 It is an error to release write access to an 'RWLock' which is not in the
 \"write\" state.
 -}
-releaseWrite ∷ RWLock → IO ()
+releaseWrite :: RWLock -> IO ()
 releaseWrite (RWLock {state, writeLock}) = mask_ $ do
-  st ← takeMVar state
+  st <- takeMVar state
   case st of
-    Write → do Lock.release writeLock
-               putMVar state Free
-    _ → do putMVar state st
-           error $ moduleName ⊕ ".releaseWrite: already released"
+    Write -> do Lock.release writeLock
+                putMVar state Free
+    _ -> do putMVar state st
+            error $ moduleName ++ ".releaseWrite: already released"
 
 {-|
 A convenience function wich first acquires write access and then performs
 the computation. When the computation terminates, whether normally or by raising
 an exception, the write lock is released.
 -}
-withWrite ∷ RWLock → IO α → IO α
+withWrite :: RWLock -> IO a -> IO a
 withWrite = liftA2 bracket_ acquireWrite releaseWrite
 
 {-|
@@ -328,11 +324,11 @@ A non-blocking 'withWrite'. First tries to acquire the lock. If that fails,
 computation terminates, whether normally or by raising an exception, the lock is
 released and 'Just' the result of the computation is returned.
 -}
-tryWithWrite ∷ RWLock → IO α → IO (Maybe α)
-tryWithWrite l a = mask $ \restore → do
-  acquired ← tryAcquireWrite l
+tryWithWrite :: RWLock -> IO a -> IO (Maybe a)
+tryWithWrite l a = mask $ \restore -> do
+  acquired <- tryAcquireWrite l
   if acquired
-    then do r ← restore a `onException` releaseWrite l
+    then do r <- restore a `onException` releaseWrite l
             releaseWrite l
             return $ Just r
     else return Nothing
@@ -349,8 +345,8 @@ Note that @waitWrite@ is just a convenience function defined as:
 
 @waitWrite l = 'mask_' '$' 'acquireWrite' l '>>' 'releaseWrite' l@
 -}
-waitWrite ∷ RWLock → IO ()
+waitWrite :: RWLock -> IO ()
 waitWrite l = mask_ $ acquireWrite l >> releaseWrite l
 
-moduleName ∷ String
+moduleName :: String
 moduleName = "Control.Concurrent.ReadWriteLock"

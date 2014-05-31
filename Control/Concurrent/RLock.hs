@@ -2,7 +2,6 @@
            , BangPatterns
            , DeriveDataTypeable
            , NoImplicitPrelude
-           , UnicodeSyntax
   #-}
 
 #if __GLASGOW_HASKELL__ >= 704
@@ -71,12 +70,13 @@ import Control.Applicative     ( liftA2 )
 import Control.Concurrent      ( ThreadId, myThreadId )
 import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, readMVar, putMVar )
 import Control.Exception       ( bracket_, onException )
-import Control.Monad           ( Monad, return, (>>) )
+import Control.Monad           ( return, (>>) )
 import Data.Bool               ( Bool(False, True), otherwise )
-import Data.Eq                 ( Eq )
-import Data.Function           ( ($) )
+import Data.Eq                 ( Eq, (==) )
+import Data.Function           ( ($), (.) )
 import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( Maybe(Nothing, Just) )
+import Data.List               ( (++) )
 import Data.Tuple              ( fst )
 import Data.Typeable           ( Typeable )
 import Prelude                 ( Integer, succ, pred, error )
@@ -84,13 +84,8 @@ import System.IO               ( IO )
 
 #if __GLASGOW_HASKELL__ < 700
 import Prelude                 ( fromInteger )
-import Control.Monad           ( fail, (>>=) )
+import Control.Monad           ( Monad, fail, (>>=) )
 #endif
-
--- from base-unicode-symbols:
-import Data.Eq.Unicode         ( (≡) )
-import Data.Function.Unicode   ( (∘) )
-import Data.Monoid.Unicode     ( (⊕) )
 
 -- from concurrent-extra (this package):
 import           Control.Concurrent.Lock ( Lock )
@@ -111,7 +106,7 @@ the lock is in the \"locked\" state it has two additional properties:
 
 * Its /acquired count/: how many times its owner acquired the lock.
 -}
-newtype RLock = RLock {un ∷ MVar (State, Lock)}
+newtype RLock = RLock {un :: MVar (State, Lock)}
     deriving (Eq, Typeable)
 
 {-| The state of an 'RLock'.
@@ -129,17 +124,17 @@ type State = Maybe (ThreadId, Integer)
 --------------------------------------------------------------------------------
 
 -- | Create a reentrant lock in the \"unlocked\" state.
-new ∷ IO RLock
-new = do lock ← Lock.new
+new :: IO RLock
+new = do lock <- Lock.new
          RLock <$> newMVar (Nothing, lock)
 
 {-|
 Create a reentrant lock in the \"locked\" state (with the current thread as
 owner and an acquired count of 1).
 -}
-newAcquired ∷ IO RLock
-newAcquired = do myTID ← myThreadId
-                 lock ← Lock.newAcquired
+newAcquired :: IO RLock
+newAcquired = do myTID <- myThreadId
+                 lock <- Lock.newAcquired
                  RLock <$> newMVar (Just (myTID, 1), lock)
 
 
@@ -174,19 +169,19 @@ order. This is useful for providing fairness properties of abstractions built
 using locks. (Note that this differs from the Python implementation where the
 wake-up order is undefined.)
 -}
-acquire ∷ RLock → IO ()
+acquire :: RLock -> IO ()
 acquire (RLock mv) = do
-  myTID ← myThreadId
-  mask_ $ let acq = do t@(mb, lock) ← takeMVar mv
+  myTID <- myThreadId
+  mask_ $ let acq = do t@(mb, lock) <- takeMVar mv
                        case mb of
-                         Nothing         → do Lock.acquire lock
-                                              putMVar mv (Just (myTID, 1), lock)
+                         Nothing          -> do Lock.acquire lock
+                                                putMVar mv (Just (myTID, 1), lock)
                          Just (tid, n)
-                           | myTID ≡ tid → let !sn = succ n
-                                           in putMVar mv (Just (tid, sn), lock)
-                           | otherwise   → do putMVar mv t
-                                              Lock.wait lock
-                                              acq
+                           | myTID == tid -> let !sn = succ n
+                                             in putMVar mv (Just (tid, sn), lock)
+                           | otherwise    -> do putMVar mv t
+                                                Lock.wait lock
+                                                acq
           in acq
 
 {-|
@@ -199,22 +194,22 @@ A non-blocking 'acquire'.
 * When the state is \"locked\" @tryAcquire@ leaves the state unchanged and
 returns 'False'.
 -}
-tryAcquire ∷ RLock → IO Bool
+tryAcquire :: RLock -> IO Bool
 tryAcquire (RLock mv) = do
-  myTID ← myThreadId
+  myTID <- myThreadId
   mask_ $ do
-    t@(mb, lock) ← takeMVar mv
+    t@(mb, lock) <- takeMVar mv
     case mb of
-      Nothing         → do Lock.acquire lock
-                           putMVar mv (Just (myTID, 1), lock)
-                           return True
+      Nothing          -> do Lock.acquire lock
+                             putMVar mv (Just (myTID, 1), lock)
+                             return True
       Just (tid, n)
-        | myTID ≡ tid → do let !sn = succ n
-                           putMVar mv (Just (tid, sn), lock)
-                           return True
+        | myTID == tid -> do let !sn = succ n
+                             putMVar mv (Just (tid, sn), lock)
+                             return True
 
-        | otherwise   → do putMVar mv t
-                           return False
+        | otherwise    -> do putMVar mv t
+                             return False
 
 {-| @release@ decrements the acquired count. When a lock is released with an
 acquired count of 1 its state is changed to \"unlocked\".
@@ -225,22 +220,22 @@ release a lock that is not owned by the current thread.
 If there are any threads blocked on 'acquire' the thread that first called
 @acquire@ will be woken up.
 -}
-release ∷ RLock → IO ()
+release :: RLock -> IO ()
 release (RLock mv) = do
-  myTID ← myThreadId
+  myTID <- myThreadId
   mask_ $ do
-    t@(mb, lock) ← takeMVar mv
+    t@(mb, lock) <- takeMVar mv
     let err msg = do putMVar mv t
-                     error $ "Control.Concurrent.RLock.release: " ⊕ msg
+                     error $ "Control.Concurrent.RLock.release: " ++ msg
     case mb of
-      Nothing → err "Can't release an unacquired RLock!"
+      Nothing -> err "Can't release an unacquired RLock!"
       Just (tid, n)
-        | myTID ≡ tid → if n ≡ 1
-                        then do Lock.release lock
-                                putMVar mv (Nothing, lock)
-                        else let !pn = pred n
-                             in putMVar mv (Just (tid, pn), lock)
-        | otherwise → err "Calling thread does not own the RLock!"
+        | myTID == tid -> if n == 1
+                          then do Lock.release lock
+                                  putMVar mv (Nothing, lock)
+                          else let !pn = pred n
+                               in putMVar mv (Just (tid, pn), lock)
+        | otherwise -> err "Calling thread does not own the RLock!"
 
 
 --------------------------------------------------------------------------------
@@ -253,7 +248,7 @@ normally or by raising an exception, the lock is released.
 
 Note that: @with = 'liftA2' 'bracket_' 'acquire' 'release'@.
 -}
-with ∷ RLock → IO α → IO α
+with :: RLock -> IO a -> IO a
 with = liftA2 bracket_ acquire release
 
 {-|
@@ -263,11 +258,11 @@ computation is performed. When the computation terminates, whether normally or
 by raising an exception, the lock is released and 'Just' the result of the
 computation is returned.
 -}
-tryWith ∷ RLock → IO α → IO (Maybe α)
-tryWith l a = mask $ \restore → do
-  acquired ← tryAcquire l
+tryWith :: RLock -> IO a -> IO (Maybe a)
+tryWith l a = mask $ \restore -> do
+  acquired <- tryAcquire l
   if acquired
-    then do r ← restore a `onException` release l
+    then do r <- restore a `onException` release l
             release l
             return $ Just r
     else return Nothing
@@ -284,7 +279,7 @@ Note that @wait@ is just a convenience function defined as:
 
 @wait l = 'block' '$' 'acquire' l '>>' 'release' l@
 -}
-wait ∷ RLock → IO ()
+wait :: RLock -> IO ()
 wait l = mask_ $ acquire l >> release l
 
 
@@ -298,5 +293,5 @@ Determine the state of the reentrant lock.
 Note that this is only a snapshot of the state. By the time a program reacts on
 its result it may already be out of date.
 -}
-state ∷ RLock → IO State
-state = fmap fst ∘ readMVar ∘ un
+state :: RLock -> IO State
+state = fmap fst . readMVar . un

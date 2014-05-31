@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, NoImplicitPrelude , UnicodeSyntax #-}
+{-# LANGUAGE CPP, NoImplicitPrelude #-}
 
 module Control.Concurrent.ReadWriteLock.Test ( tests ) where
 
@@ -8,6 +8,7 @@ module Control.Concurrent.ReadWriteLock.Test ( tests ) where
 -------------------------------------------------------------------------------
 
 -- from base:
+import Prelude            ( (*) )
 import Control.Monad      ( (>>), (>>=), replicateM_ )
 import Control.Concurrent ( forkIO, threadDelay )
 import Data.Function      ( ($) )
@@ -19,9 +20,6 @@ import System.Random      ( randomRIO )
 import Prelude            ( fromInteger )
 import Control.Monad      ( (>>=), fail )
 #endif
-
--- from base-unicode-symbols:
-import Prelude.Unicode    ( (⋅) )
 
 -- from async:
 import Control.Concurrent.Async ( Concurrently(Concurrently), runConcurrently )
@@ -48,16 +46,16 @@ import Test.Framework.Providers.HUnit ( testCase )
 -- Tests for ReadWriteLock
 -------------------------------------------------------------------------------
 
-tests ∷ [Test]
+tests :: [Test]
 tests = [ testCase "test1" test1
         , testCase "test2" test2
         , testCase "stressTest" stressTest
         ]
 
-test1 ∷ Assertion
-test1 = assert $ within (10 ⋅ a_moment) $ do
+test1 :: Assertion
+test1 = assert $ within (10 * a_moment) $ do
           -- Create a new read-write-lock (in the "Free" state):
-          rwl ← RWLock.new
+          rwl <- RWLock.new
 
           -- Put the read-write-lock in the "Write" state:
           RWLock.acquireWrite rwl
@@ -76,10 +74,10 @@ test1 = assert $ within (10 ⋅ a_moment) $ do
           -- following shouldn't deadlock:
           RWLock.acquireWrite rwl
 
-test2 ∷ Assertion
-test2 = assert $ within (10 ⋅ a_moment) $ do
+test2 :: Assertion
+test2 = assert $ within (10 * a_moment) $ do
           -- Create a new read-write-lock (in the "Free" state):
-          rwl ← RWLock.new
+          rwl <- RWLock.new
 
           -- Put the read-write-lock in the "Read" state:
           RWLock.acquireRead rwl
@@ -99,7 +97,7 @@ test2 = assert $ within (10 ⋅ a_moment) $ do
           RWLock.acquireRead rwl
 
 stressTest :: Assertion
-stressTest = assert $ within (500 ⋅ a_moment) $ do
+stressTest = assert $ within (500 * a_moment) $ do
   lock <- RWLock.new
 
   let randomDelay hi = randomRIO (0, hi) >>= threadDelay

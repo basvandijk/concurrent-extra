@@ -1,4 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Main where
 
@@ -26,10 +26,10 @@ import Test.Framework ( Test, defaultMain, testGroup )
 -- Tests
 -------------------------------------------------------------------------------
 
-main ∷ IO ()
+main :: IO ()
 main = defaultMain tests
 
-tests ∷ [Test]
+tests :: [Test]
 tests = [ testGroup "Pessimistic locking"
           [ testGroup "Event"         Event.tests
           , testGroup "Lock"          Lock.tests
@@ -40,6 +40,3 @@ tests = [ testGroup "Pessimistic locking"
           , testGroup "ReadWriteVar"  RWVar.tests
           ]
         ]
-
-
--- The End ---------------------------------------------------------------------

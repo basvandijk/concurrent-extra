@@ -1,5 +1,5 @@
 name:          concurrent-extra
-version:       0.7.0.8
+version:       0.7.0.9
 cabal-version: >= 1.8
 build-type:    Custom
 stability:     experimental
@@ -51,7 +51,6 @@ source-repository head
 
 library
   build-depends: base                 >= 3       && < 5
-               , base-unicode-symbols >= 0.1.1   && < 0.3
                , stm                  >= 2.1.2.1 && < 2.5
                , unbounded-delays     >= 0.1     && < 0.2
   exposed-modules: Control.Concurrent.Lock
@@ -81,7 +80,6 @@ test-suite test-concurrent-extra
   ghc-options: -Wall -threaded
 
   build-depends: base                 >= 3       && < 5
-               , base-unicode-symbols >= 0.1.1   && < 0.3
                , stm                  >= 2.1.2.1 && < 2.5
                , unbounded-delays     >= 0.1     && < 0.2
                , HUnit                >= 1.2.2   && < 1.3

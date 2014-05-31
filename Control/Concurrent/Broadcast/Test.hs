@@ -1,6 +1,4 @@
-{-# LANGUAGE NoImplicitPrelude
-           , UnicodeSyntax
-  #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 
 module Control.Concurrent.Broadcast.Test ( tests ) where
 
@@ -11,9 +9,6 @@ module Control.Concurrent.Broadcast.Test ( tests ) where
 
 -- from base:
 import Control.Concurrent ( )
-
--- from base-unicode-symbols:
-import Prelude.Unicode       ( )
 
 -- from concurrent-extra:
 import qualified Control.Concurrent.Broadcast as Broadcast ( )
@@ -33,5 +28,5 @@ import Test.Framework.Providers.HUnit ( )
 -- Tests for Broadcast
 -------------------------------------------------------------------------------
 
-tests ∷ [Test]
+tests :: [Test]
 tests = []

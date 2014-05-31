@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude, UnicodeSyntax #-}
+{-# LANGUAGE CPP, DeriveDataTypeable, NoImplicitPrelude #-}
 
 #if __GLASGOW_HASKELL__ >= 704
 {-# LANGUAGE Safe #-}
@@ -67,13 +67,13 @@ import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , isEmptyMVar
                                )
 import Control.Exception       ( bracket_, onException )
-import Control.Monad           ( Monad, return, (>>), when )
+import Control.Monad           ( return, (>>), when )
 import Data.Bool               ( Bool, not )
 #ifdef __HADDOCK__
 import Data.Bool               ( Bool(False, True) )
 #endif
 import Data.Eq                 ( Eq )
-import Data.Function           ( ($) )
+import Data.Function           ( ($), (.) )
 import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( Maybe(Nothing, Just), isJust )
 import Data.Typeable           ( Typeable )
@@ -81,11 +81,8 @@ import Prelude                 ( error )
 import System.IO               ( IO )
 
 #if __GLASGOW_HASKELL__ < 700
-import Control.Monad           ( (>>=), fail )
+import Control.Monad           ( Monad, (>>=), fail )
 #endif
-
--- from base-unicode-symbols:
-import Data.Function.Unicode   ( (∘) )
 
 -- from concurrent-extra (this package):
 import Utils                   ( mask, mask_ )
@@ -96,7 +93,7 @@ import Utils                   ( mask, mask_ )
 --------------------------------------------------------------------------------
 
 -- | A lock is in one of two states: \"locked\" or \"unlocked\".
-newtype Lock = Lock {un ∷ MVar ()} deriving (Eq, Typeable)
+newtype Lock = Lock {un :: MVar ()} deriving (Eq, Typeable)
 
 
 --------------------------------------------------------------------------------
@@ -104,11 +101,11 @@ newtype Lock = Lock {un ∷ MVar ()} deriving (Eq, Typeable)
 --------------------------------------------------------------------------------
 
 -- | Create a lock in the \"unlocked\" state.
-new ∷ IO Lock
+new :: IO Lock
 new = Lock <$> newMVar ()
 
 -- | Create a lock in the \"locked\" state.
-newAcquired ∷ IO Lock
+newAcquired :: IO Lock
 newAcquired = Lock <$> newEmptyMVar
 
 
@@ -138,8 +135,8 @@ order. This is useful for providing fairness properties of abstractions built
 using locks. (Note that this differs from the Python implementation where the
 wake-up order is undefined.)
 -}
-acquire ∷ Lock → IO ()
-acquire = takeMVar ∘ un
+acquire :: Lock -> IO ()
+acquire = takeMVar . un
 
 {-|
 A non-blocking 'acquire'.
@@ -150,8 +147,8 @@ and returns 'True'.
 * When the state is \"locked\" @tryAcquire@ leaves the state unchanged and
 returns 'False'.
 -}
-tryAcquire ∷ Lock → IO Bool
-tryAcquire = fmap isJust ∘ tryTakeMVar ∘ un
+tryAcquire :: Lock -> IO Bool
+tryAcquire = fmap isJust . tryTakeMVar . un
 
 {-|
 @release@ changes the state to \"unlocked\" and returns immediately.
@@ -161,9 +158,9 @@ Note that it is an error to release a lock in the \"unlocked\" state!
 If there are any threads blocked on 'acquire' the thread that first called
 @acquire@ will be woken up.
 -}
-release ∷ Lock → IO ()
+release :: Lock -> IO ()
 release (Lock mv) = do
-  b ← tryPutMVar mv ()
+  b <- tryPutMVar mv ()
   when (not b) $ error "Control.Concurrent.Lock.release: Can't release unlocked Lock!"
 
 
@@ -178,7 +175,7 @@ exception, the lock is released.
 
 Note that: @with = 'liftA2' 'bracket_' 'acquire' 'release'@.
 -}
-with ∷ Lock → IO a → IO a
+with :: Lock -> IO a -> IO a
 with = liftA2 bracket_ acquire release
 
 {-|
@@ -188,11 +185,11 @@ computation is performed. When the computation terminates, whether normally or
 by raising an exception, the lock is released and 'Just' the result of the
 computation is returned.
 -}
-tryWith ∷ Lock → IO α → IO (Maybe α)
-tryWith l a = mask $ \restore → do
-  acquired ← tryAcquire l
+tryWith :: Lock -> IO a -> IO (Maybe a)
+tryWith l a = mask $ \restore -> do
+  acquired <- tryAcquire l
   if acquired
-    then do r ← restore a `onException` release l
+    then do r <- restore a `onException` release l
             release l
             return $ Just r
     else return Nothing
@@ -209,7 +206,7 @@ Note that @wait@ is just a convenience function we can be defined as:
 
 @wait l = 'block' '$' 'acquire' l '>>' 'release' l@
 -}
-wait ∷ Lock → IO ()
+wait :: Lock -> IO ()
 wait (Lock mv) = mask_ $ takeMVar mv >> putMVar mv ()
 
 
@@ -223,5 +220,5 @@ Determines if the lock is in the \"locked\" state.
 Note that this is only a snapshot of the state. By the time a program reacts
 on its result it may already be out of date.
 -}
-locked ∷ Lock → IO Bool
-locked = isEmptyMVar ∘ un
+locked :: Lock -> IO Bool
+locked = isEmptyMVar . un
