@@ -1,5 +1,5 @@
 name:          concurrent-extra
-version:       0.7.0.7
+version:       0.7.0.8
 cabal-version: >= 1.8
 build-type:    Custom
 stability:     experimental
@@ -88,5 +88,6 @@ test-suite test-concurrent-extra
                , random               >= 1.0     && < 1.1
                , test-framework       >= 0.2.4   && < 0.9
                , test-framework-hunit >= 0.2.4   && < 0.4
+               , async                >= 2.0     && < 2.1
 
 -------------------------------------------------------------------------------

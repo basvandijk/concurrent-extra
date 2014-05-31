@@ -8,12 +8,12 @@ module Control.Concurrent.ReadWriteLock.Test ( tests ) where
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Monad      ( (>>), (>>=), forever, replicateM_ )
+import Control.Monad      ( (>>), (>>=), replicateM_ )
 import Control.Concurrent ( forkIO, threadDelay )
 import Data.Function      ( ($) )
-import System.IO          ( putStr )
+import Data.Foldable      ( sequenceA_ )
+import Data.List          ( map, replicate, (++) )
 import System.Random      ( randomRIO )
-import System.Timeout     ( timeout )
 
 #if __GLASGOW_HASKELL__ < 700
 import Prelude            ( fromInteger )
@@ -22,6 +22,9 @@ import Control.Monad      ( (>>=), fail )
 
 -- from base-unicode-symbols:
 import Prelude.Unicode    ( (⋅) )
+
+-- from async:
+import Control.Concurrent.Async ( Concurrently(Concurrently), runConcurrently )
 
 -- from concurrent-extra:
 import qualified Control.Concurrent.ReadWriteLock as RWLock
@@ -98,17 +101,16 @@ test2 = assert $ within (10 ⋅ a_moment) $ do
 stressTest :: Assertion
 stressTest = assert $ within (500 ⋅ a_moment) $ do
   lock <- RWLock.new
-  
-  let
-    reader = forever $ do
-      randomRIO (0, 100) >>= threadDelay
-      RWLock.withRead lock $ putStr "r"
-      
-    writer = forever $ do
-      randomRIO (0, 100) >>= threadDelay
-      RWLock.withWrite lock $ putStr "w"
-    
-  replicateM_ 10 $ forkIO reader
-  replicateM_ 10 $ forkIO writer
-  timeout (250 ⋅ a_moment) writer
-  
+
+  let randomDelay hi = randomRIO (0, hi) >>= threadDelay
+
+      reader = replicateM_ 500 $ do
+        randomDelay 100
+        RWLock.withRead lock $ randomDelay 10
+
+      writer = replicateM_ 500 $ do
+        randomDelay 100
+        RWLock.withWrite lock $ randomDelay 10
+
+  runConcurrently $ sequenceA_ $ map Concurrently $
+    replicate 10 reader ++ replicate 10 writer
