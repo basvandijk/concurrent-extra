@@ -8,9 +8,12 @@ module Control.Concurrent.ReadWriteLock.Test ( tests ) where
 -------------------------------------------------------------------------------
 
 -- from base:
-import Control.Monad      ( (>>) )
+import Control.Monad      ( (>>), (>>=), forever, replicateM_ )
 import Control.Concurrent ( forkIO, threadDelay )
 import Data.Function      ( ($) )
+import System.IO          ( putStr )
+import System.Random      ( randomRIO )
+import System.Timeout     ( timeout )
 
 #if __GLASGOW_HASKELL__ < 700
 import Prelude            ( fromInteger )
@@ -22,7 +25,7 @@ import Prelude.Unicode    ( (⋅) )
 
 -- from concurrent-extra:
 import qualified Control.Concurrent.ReadWriteLock as RWLock
-    ( new, acquireWrite, acquireRead, releaseWrite, releaseRead  )
+    ( new, acquireWrite, acquireRead, releaseWrite, releaseRead, withRead, withWrite  )
 
 import TestUtils ( within, a_moment )
 
@@ -45,6 +48,7 @@ import Test.Framework.Providers.HUnit ( testCase )
 tests ∷ [Test]
 tests = [ testCase "test1" test1
         , testCase "test2" test2
+        , testCase "stressTest" stressTest
         ]
 
 test1 ∷ Assertion
@@ -90,3 +94,21 @@ test2 = assert $ within (10 ⋅ a_moment) $ do
           -- The read-write-lock should now be in the "Free" state so the
           -- following shouldn't deadlock:
           RWLock.acquireRead rwl
+
+stressTest :: Assertion
+stressTest = assert $ within (500 ⋅ a_moment) $ do
+  lock <- RWLock.new
+  
+  let
+    reader = forever $ do
+      randomRIO (0, 100) >>= threadDelay
+      RWLock.withRead lock $ putStr "r"
+      
+    writer = forever $ do
+      randomRIO (0, 100) >>= threadDelay
+      RWLock.withWrite lock $ putStr "w"
+    
+  replicateM_ 10 $ forkIO reader
+  replicateM_ 10 $ forkIO writer
+  timeout (250 ⋅ a_moment) writer
+  

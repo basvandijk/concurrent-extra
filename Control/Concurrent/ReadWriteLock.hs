@@ -73,9 +73,9 @@ module Control.Concurrent.ReadWriteLock
 
 -- from base:
 import Control.Applicative     ( liftA2, liftA3 )
-import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar, swapMVar )
+import Control.Concurrent.MVar ( MVar, newMVar, takeMVar, putMVar )
 import Control.Exception       ( bracket_, onException )
-import Control.Monad           ( return, return, (>>), when )
+import Control.Monad           ( return, (>>) )
 import Data.Bool               ( Bool(False, True) )
 import Data.Eq                 ( Eq, (==) )
 import Data.Function           ( ($), on )
@@ -97,9 +97,9 @@ import Data.Monoid.Unicode     ( (⊕) )
 -- from concurrent-extra (this package):
 import           Control.Concurrent.Lock ( Lock )
 import qualified Control.Concurrent.Lock as Lock
-    ( new, newAcquired, acquire, tryAcquire, release, wait )
+    ( new, newAcquired, acquire, release, wait )
 
-import Utils ( void, mask, mask_ )
+import Utils ( mask, mask_ )
 
 
 -------------------------------------------------------------------------------
@@ -277,8 +277,8 @@ acquireWrite (RWLock {state, readLock, writeLock}) = mask_ acqWrite
                                   Lock.wait readLock
                                   acqWrite
                       Write  → do putMVar state st
-                                  Lock.acquire writeLock
-                                  void $ swapMVar state Write
+                                  Lock.wait writeLock
+                                  acqWrite
 
 {-|
 Try to acquire the write lock; non blocking.
@@ -293,12 +293,8 @@ tryAcquireWrite (RWLock {state, writeLock}) = mask_ $ do
     Free   → do Lock.acquire writeLock
                 putMVar state Write
                 return True
-    Read _ → do putMVar state st
+    _      → do putMVar state st
                 return False
-    Write  → do putMVar state st
-                b ← Lock.tryAcquire writeLock
-                when b $ void $ swapMVar state Write
-                return b
 
 {-|
 Release the write lock.
