@@ -69,7 +69,7 @@ import Data.Maybe              ( isJust )
 import Data.Typeable           ( Typeable )
 
 #ifdef __HADDOCK__
-import Control.Exception       ( block )
+import Control.Exception       ( mask )
 #endif
 
 import Prelude                 ( Integer )
@@ -168,7 +168,7 @@ is 'set' again.
 The semantics of signal are equivalent to the following definition:
 
 @
-  signal e = 'block' $ 'set' e >> 'clear' e
+  signal e = 'mask' $ 'set' e >> 'clear' e
 @-}
 signal :: Event -> IO ()
 signal ev = Broadcast.signal (evBroadcast ev) ()
