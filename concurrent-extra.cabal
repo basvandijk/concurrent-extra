@@ -49,6 +49,9 @@ source-repository head
 
 -------------------------------------------------------------------------------
 
+custom-setup
+    setup-depends: base >= 4 && <5, Cabal >= 1.18 && < 2.1
+
 library
   build-depends: base                 >= 3       && < 5
                , stm                  >= 2.1.2.1 && < 2.5
@@ -82,7 +85,7 @@ test-suite test-concurrent-extra
   build-depends: base                 >= 3       && < 5
                , stm                  >= 2.1.2.1 && < 2.5
                , unbounded-delays     >= 0.1     && < 0.2
-               , HUnit                >= 1.2.2   && < 1.4
+               , HUnit                >= 1.2.2   && < 1.7
                , random               >= 1.0     && < 1.2
                , test-framework       >= 0.2.4   && < 0.9
                , test-framework-hunit >= 0.2.4   && < 0.4
