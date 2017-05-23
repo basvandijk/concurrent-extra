@@ -54,10 +54,10 @@ module Control.Concurrent.STM.Lock
 -- from base:
 import Control.Applicative          ( liftA2 )
 import Control.Exception            ( bracket_, onException )
-import Control.Monad                ( return, (>>), when )
+import Control.Monad                ( return, when )
 import Data.Bool                    ( Bool, not )
 
-#ifdef __HADDOCK__
+#ifdef __HADDOCK_VERSION__
 import Data.Bool                    ( Bool(False, True) )
 #endif
 
@@ -80,14 +80,13 @@ import Control.Monad                ( Monad )
 -- from stm:
 import Control.Concurrent.STM       ( STM, atomically )
 
-#ifdef __HADDOCK__
+#ifdef __HADDOCK_VERSION__
 import Control.Concurrent.STM       ( retry )
 #endif
 
 import Control.Concurrent.STM.TMVar ( TMVar, newTMVar, newEmptyTMVar
                                     , takeTMVar, tryTakeTMVar
-                                    , putTMVar, tryPutTMVar
-                                    , isEmptyTMVar
+                                    , tryPutTMVar, readTMVar, isEmptyTMVar
                                     )
 
 -- from concurrent-extra (this package):
@@ -191,7 +190,7 @@ Note that @wait@ is just a convenience function which can be defined as:
 @wait l = 'acquire' l '>>' 'release' l@
 -}
 wait :: Lock -> STM ()
-wait (Lock tmv) = takeTMVar tmv >> putTMVar tmv ()
+wait (Lock tmv) = readTMVar tmv
 
 
 --------------------------------------------------------------------------------

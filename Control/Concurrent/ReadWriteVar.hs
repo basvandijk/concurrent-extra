@@ -76,7 +76,7 @@ import Data.Maybe          ( Maybe(..), isJust )
 import Data.IORef          ( IORef, newIORef, readIORef )
 import Data.Typeable       ( Typeable )
 import System.IO           ( IO )
-#ifdef __HADDOCK__
+#ifdef __HADDOCK_VERSION__
 import Data.Function       ( const )
 import Prelude             ( undefined )
 #endif

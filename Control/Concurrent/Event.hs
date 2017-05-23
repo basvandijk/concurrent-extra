@@ -68,7 +68,7 @@ import Data.Functor            ( fmap, (<$>) )
 import Data.Maybe              ( isJust )
 import Data.Typeable           ( Typeable )
 
-#ifdef __HADDOCK__
+#ifdef __HADDOCK_VERSION__
 import Control.Exception       ( mask )
 #endif
 

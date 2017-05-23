@@ -63,13 +63,12 @@ module Control.Concurrent.Lock
 import Control.Applicative     ( liftA2 )
 import Control.Concurrent.MVar ( MVar, newMVar, newEmptyMVar
                                , takeMVar, tryTakeMVar
-                               , putMVar, tryPutMVar
-                               , isEmptyMVar
+                               , tryPutMVar, readMVar, isEmptyMVar
                                )
 import Control.Exception       ( bracket_, onException )
-import Control.Monad           ( return, (>>), when )
+import Control.Monad           ( return, when )
 import Data.Bool               ( Bool, not )
-#ifdef __HADDOCK__
+#ifdef __HADDOCK_VERSION__
 import Data.Bool               ( Bool(False, True) )
 #endif
 import Data.Eq                 ( Eq )
@@ -85,7 +84,7 @@ import Control.Monad           ( Monad, (>>=), fail )
 #endif
 
 -- from concurrent-extra (this package):
-import Utils                   ( mask, mask_ )
+import Utils                   ( mask )
 
 
 --------------------------------------------------------------------------------
@@ -198,16 +197,15 @@ tryWith l a = mask $ \restore -> do
 * When the state is \"locked\", @wait@ /blocks/ until a call to 'release' in
 another thread changes it to \"unlocked\".
 
+* @wait@ is multiple-wakeup, so when multiple waiters are blocked on a @Lock@,
+  all of them are woken up at the same time.
+
 * When the state is \"unlocked\" @wait@ returns immediately.
 
 @wait@ does not alter the state of the lock.
-
-Note that @wait@ is just a convenience function we can be defined as:
-
-@wait l = 'block' '$' 'acquire' l '>>' 'release' l@
 -}
 wait :: Lock -> IO ()
-wait (Lock mv) = mask_ $ takeMVar mv >> putMVar mv ()
+wait (Lock mv) = readMVar mv
 
 
 --------------------------------------------------------------------------------
