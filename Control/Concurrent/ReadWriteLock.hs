@@ -121,7 +121,7 @@ instance Eq RWLock where
     (==) = (==) `on` state
 
 -- | Internal state of the 'RWLock'.
-data State = Free | Read Int | Write
+data State = Free | Read  {-# UNPACK #-} !Int | Write
 
 
 -------------------------------------------------------------------------------
